@@ -1,18 +1,57 @@
 import { Link } from 'react-router';
+import { useEffect, useMemo, useState } from 'react';
 import { FileText, Clock, CheckCircle, XCircle, PlusCircle, TrendingUp, Download, Shield } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { useDocuments } from '../context/DocumentContext';
+import { useAuth } from '../context/AuthContext';
+import * as requestService from '../../services/requestService';
+import { handleError } from '../../utils/errorHandler';
 
 export default function StudentDashboard() {
-  const { getDocumentByRequestId } = useDocuments();
-  const stats = [
-    { label: 'Total Requests', value: '12', icon: FileText, color: 'text-indigo-400' },
-    { label: 'Pending', value: '3', icon: Clock, color: 'text-amber-400' },
-    { label: 'Approved', value: '8', icon: CheckCircle, color: 'text-emerald-400' },
-    { label: 'Rejected', value: '1', icon: XCircle, color: 'text-red-400' },
-  ];
+  const { getDocumentByRequestId, fetchDocumentsForRequest } = useDocuments();
+  const { user } = useAuth();
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      if (!user) return;
+
+      setLoading(true);
+      try {
+        const data = await requestService.getUserRequests(user.id);
+        setRequests(data);
+
+        await Promise.all(
+          data
+            .filter((request) => request.status === 'approved')
+            .map((request) => fetchDocumentsForRequest(request.id))
+        );
+      } catch (err) {
+        handleError(err, 'dashboard:load');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, [user, fetchDocumentsForRequest]);
+
+  const stats = useMemo(() => {
+    const total = requests.length;
+    const pending = requests.filter((request) => request.status === 'pending').length;
+    const approved = requests.filter((request) => request.status === 'approved').length;
+    const rejected = requests.filter((request) => request.status === 'rejected').length;
+
+    return [
+      { label: 'Total Requests', value: String(total), icon: FileText, color: 'text-indigo-400' },
+      { label: 'Pending', value: String(pending), icon: Clock, color: 'text-amber-400' },
+      { label: 'Approved', value: String(approved), icon: CheckCircle, color: 'text-emerald-400' },
+      { label: 'Rejected', value: String(rejected), icon: XCircle, color: 'text-red-400' },
+    ];
+  }, [requests]);
 
   const recentActivity = [
     { id: 1, action: 'Request approved', description: 'Transcript request #1247 has been approved', time: '2 hours ago', type: 'success' },
@@ -21,12 +60,13 @@ export default function StudentDashboard() {
     { id: 4, action: 'Document ready', description: 'Your transcript is ready for download', time: '3 days ago', type: 'success' },
   ];
 
-  const myRequests = [
-    { id: '1247', type: 'Official Transcript', status: 'approved', date: '2026-04-26', purpose: 'Job Application' },
-    { id: '1245', type: 'Certificate of Enrollment', status: 'pending', date: '2026-04-27', purpose: 'Scholarship Application' },
-    { id: '1243', type: 'Grade Report', status: 'pending', date: '2026-04-27', purpose: 'Personal Records' },
-    { id: '1240', type: 'Recommendation Letter', status: 'approved', date: '2026-04-25', purpose: 'Graduate School' },
-  ];
+  const myRequests = requests.slice(0, 4).map((request) => ({
+    id: request.id,
+    type: request.type,
+    status: request.status,
+    date: request.date ? request.date.slice(0, 10) : '',
+    purpose: request.purpose,
+  }));
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -69,6 +109,12 @@ export default function StudentDashboard() {
             );
           })}
         </div>
+
+        {loading && (
+          <Card className="bg-slate-900 border-slate-800 mb-6">
+            <CardContent className="py-6 text-slate-400">Loading dashboard data...</CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">

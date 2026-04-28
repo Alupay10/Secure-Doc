@@ -1,18 +1,20 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { signIn, signOut, getUser as getSupabaseUser, onAuthStateChange } from '../../services/authService';
+import { handleError } from '../../utils/errorHandler';
 
 type UserRole = 'student' | 'admin';
 
 interface User {
   id: string;
-  name: string;
-  email: string;
-  role: UserRole;
+  name?: string | null;
+  email?: string | null;
+  role?: UserRole;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, role: UserRole) => void;
-  logout: () => void;
+  login: (email: string, password: string, role?: UserRole) => Promise<void>;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -21,17 +23,63 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
-  const login = (email: string, password: string, role: UserRole) => {
-    setUser({
-      id: role === 'admin' ? 'admin-001' : 'student-001',
-      name: role === 'admin' ? 'Admin User' : 'John Doe',
-      email,
-      role,
+  useEffect(() => {
+    // Initialize current user if session exists
+    (async () => {
+      try {
+        const supUser = await getSupabaseUser();
+        if (supUser) {
+          setUser({
+            id: supUser.id,
+            name: (supUser.user_metadata as any)?.full_name || supUser.email || null,
+            email: supUser.email || null,
+            role: ((supUser.user_metadata as any)?.role as UserRole) || 'student',
+          });
+        }
+      } catch (err) {
+        // ignore on init, but log in dev
+        handleError(err, 'auth:init', false);
+      }
+    })();
+
+    // Subscribe to auth state changes
+    const subscription = onAuthStateChange((supUser) => {
+      if (supUser) {
+        setUser({
+          id: supUser.id,
+          name: (supUser.user_metadata as any)?.full_name || supUser.email || null,
+          email: supUser.email || null,
+          role: ((supUser.user_metadata as any)?.role as UserRole) || 'student',
+        });
+      } else {
+        setUser(null);
+      }
     });
+
+    return () => {
+      if (subscription && typeof subscription.unsubscribe === 'function') {
+        subscription.unsubscribe();
+      }
+    };
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    try {
+      await signIn(email, password);
+      // signIn triggers auth state change which will update user
+    } catch (err) {
+      handleError(err, 'auth:login');
+      throw err;
+    }
   };
 
-  const logout = () => {
-    setUser(null);
+  const logout = async () => {
+    try {
+      await signOut();
+    } catch (err) {
+      handleError(err, 'auth:logout');
+      throw err;
+    }
   };
 
   return (

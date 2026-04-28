@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
+import { handleError, validateEmail, validatePassword } from '../../utils/errorHandler';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -13,15 +14,30 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent, role: 'student' | 'admin') => {
+  const handleSubmit = async (e: React.FormEvent, targetRole: 'student' | 'admin') => {
     e.preventDefault();
     if (!email || !password) {
       toast.error('Please fill in all fields');
       return;
     }
-    login(email, password, role);
-    toast.success(`Logged in as ${role}`);
-    navigate(role === 'admin' ? '/admin-dashboard' : '/dashboard');
+
+    if (!validateEmail(email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
+
+    try {
+      await login(email, password);
+      toast.success('Logged in');
+      navigate(targetRole === 'admin' ? '/admin-dashboard' : '/dashboard');
+    } catch (err: any) {
+      handleError(err, 'auth:login');
+    }
   };
 
   return (
