@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from "react";
 
-type UserRole = 'student' | 'admin';
+type UserRole = "student" | "admin";
 
 interface User {
   id: string;
@@ -11,7 +11,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, role: UserRole) => void;
+  login: (email: string, password: string) => UserRole | null; // <-- Updated signature
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -21,13 +21,40 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
-  const login = (email: string, password: string, role: UserRole) => {
-    setUser({
-      id: role === 'admin' ? 'admin-001' : 'student-001',
-      name: role === 'admin' ? 'Admin User' : 'John Doe',
-      email,
-      role,
-    });
+  // Mock secure backend store
+  const MOCK_USERS = [
+    {
+      email: "admin@university.edu",
+      password: "SecurePassword123!",
+      role: "admin",
+      name: "Admin User",
+      id: "ADM-001",
+    },
+    {
+      email: "student@university.edu",
+      password: "StudentPassword123!",
+      role: "student",
+      name: "John Doe",
+      id: "STU-001",
+    },
+  ];
+
+  const login = (email: string, password: string): UserRole | null => {
+    // Validate credentials against the "backend" store
+    const foundUser = MOCK_USERS.find(
+      (u) => u.email === email && u.password === password,
+    );
+
+    if (foundUser) {
+      setUser({
+        id: foundUser.id,
+        name: foundUser.name,
+        email: foundUser.email,
+        role: foundUser.role as UserRole,
+      });
+      return foundUser.role as UserRole;
+    }
+    return null;
   };
 
   const logout = () => {
@@ -35,7 +62,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider
+      value={{ user, login, logout, isAuthenticated: !!user }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -44,7 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

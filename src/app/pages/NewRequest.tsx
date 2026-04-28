@@ -1,39 +1,70 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router';
-import { FileText, Send, AlertCircle } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useNavigate } from "react-router";
+import { FileText, Send, AlertCircle } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import { toast } from "sonner";
 
 export default function NewRequest() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    documentType: '',
-    purpose: '',
-    additionalInfo: '',
-    urgency: 'normal',
+    documentType: "",
+    purpose: "",
+    additionalInfo: "",
+    urgency: "normal",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!formData.documentType || !formData.purpose) {
-      toast.error('Please fill in all required fields');
+      toast.error("Please fill in all required fields");
       return;
     }
-    toast.success('Request submitted successfully!');
-    navigate('/requests');
+
+    // FIX: Implement Input Length Validation limits
+    if (formData.purpose.length > 100) {
+      toast.error("Purpose exceeds the maximum length of 100 characters.");
+      return;
+    }
+
+    if (formData.additionalInfo.length > 500) {
+      toast.error(
+        "Additional Info exceeds the maximum length of 500 characters.",
+      );
+      return;
+    }
+
+    toast.success("Request submitted successfully!");
+    navigate("/requests");
   };
 
   return (
     <div className="min-h-screen bg-slate-950 p-8">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">New Document Request</h1>
-          <p className="text-slate-400">Submit a request for official documents</p>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            New Document Request
+          </h1>
+          <p className="text-slate-400">
+            Submit a request for official documents
+          </p>
         </div>
 
         <Card className="bg-slate-900 border-slate-800 mb-6">
@@ -43,8 +74,9 @@ export default function NewRequest() {
               <div className="text-sm">
                 <p className="text-blue-300 font-medium">Security Notice</p>
                 <p className="text-slate-400 mt-1">
-                  All requests are logged and monitored. Please ensure your request is legitimate and necessary.
-                  Processing typically takes 3-5 business days.
+                  All requests are logged and monitored. Please ensure your
+                  request is legitimate and necessary. Processing typically
+                  takes 3-5 business days.
                 </p>
               </div>
             </div>
@@ -55,7 +87,9 @@ export default function NewRequest() {
           <Card className="bg-slate-900 border-slate-800">
             <CardHeader>
               <CardTitle className="text-white">Request Details</CardTitle>
-              <CardDescription className="text-slate-400">Fill in the information below</CardDescription>
+              <CardDescription className="text-slate-400">
+                Fill in the information below
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
@@ -64,17 +98,28 @@ export default function NewRequest() {
                 </Label>
                 <Select
                   value={formData.documentType}
-                  onValueChange={(value) => setFormData({ ...formData, documentType: value })}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, documentType: value })
+                  }
                 >
-                  <SelectTrigger id="documentType" className="mt-2 bg-slate-800 border-slate-700 text-white">
+                  <SelectTrigger
+                    id="documentType"
+                    className="mt-2 bg-slate-800 border-slate-700 text-white"
+                  >
                     <SelectValue placeholder="Select document type" />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">
-                    <SelectItem value="transcript">Official Transcript</SelectItem>
-                    <SelectItem value="enrollment">Certificate of Enrollment</SelectItem>
+                    <SelectItem value="transcript">
+                      Official Transcript
+                    </SelectItem>
+                    <SelectItem value="enrollment">
+                      Certificate of Enrollment
+                    </SelectItem>
                     <SelectItem value="degree">Degree Certificate</SelectItem>
                     <SelectItem value="grade">Grade Report</SelectItem>
-                    <SelectItem value="recommendation">Recommendation Letter</SelectItem>
+                    <SelectItem value="recommendation">
+                      Recommendation Letter
+                    </SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
@@ -88,7 +133,9 @@ export default function NewRequest() {
                   id="purpose"
                   placeholder="e.g., Job application, Graduate school, Transfer"
                   value={formData.purpose}
-                  onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, purpose: e.target.value })
+                  }
                   className="mt-2 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
                 />
               </div>
@@ -99,14 +146,21 @@ export default function NewRequest() {
                 </Label>
                 <Select
                   value={formData.urgency}
-                  onValueChange={(value) => setFormData({ ...formData, urgency: value })}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, urgency: value })
+                  }
                 >
-                  <SelectTrigger id="urgency" className="mt-2 bg-slate-800 border-slate-700 text-white">
+                  <SelectTrigger
+                    id="urgency"
+                    className="mt-2 bg-slate-800 border-slate-700 text-white"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">
                     <SelectItem value="low">Low - No rush</SelectItem>
-                    <SelectItem value="normal">Normal - Standard processing</SelectItem>
+                    <SelectItem value="normal">
+                      Normal - Standard processing
+                    </SelectItem>
                     <SelectItem value="high">High - Needed soon</SelectItem>
                     <SelectItem value="urgent">Urgent - Needed ASAP</SelectItem>
                   </SelectContent>
@@ -121,7 +175,9 @@ export default function NewRequest() {
                   id="additionalInfo"
                   placeholder="Any additional details or special instructions..."
                   value={formData.additionalInfo}
-                  onChange={(e) => setFormData({ ...formData, additionalInfo: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, additionalInfo: e.target.value })
+                  }
                   className="mt-2 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 min-h-[120px]"
                 />
               </div>
@@ -137,7 +193,7 @@ export default function NewRequest() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => navigate("/dashboard")}
                   className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-white"
                 >
                   Cancel
