@@ -13,15 +13,24 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent, role: 'student' | 'admin') => {
+  // SECURE FIX: We no longer pass the 'role' from the client.
+  // The login function verifies the password and returns the correct role.
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       toast.error('Please fill in all fields');
       return;
     }
-    login(email, password, role);
-    toast.success(`Logged in as ${role}`);
-    navigate(role === 'admin' ? '/admin-dashboard' : '/dashboard');
+
+    // Call the updated login function (from AuthContext)
+    const assignedRole = login(email, password);
+
+    if (assignedRole) {
+      toast.success(`Logged in successfully`);
+      navigate(assignedRole === 'admin' ? '/admin-dashboard' : '/dashboard');
+    } else {
+      toast.error('Invalid email or password');
+    }
   };
 
   return (
@@ -41,7 +50,8 @@ export default function Login() {
         <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-slate-800 p-8 shadow-2xl">
           <h2 className="text-2xl font-semibold text-white mb-6 text-center">Login to Your Account</h2>
 
-          <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+          {/* SECURE FIX: Attach handleSubmit to the form directly */}
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
               <Label htmlFor="email" className="text-slate-300 flex items-center gap-2">
                 <Mail className="w-4 h-4" />
@@ -73,21 +83,13 @@ export default function Login() {
             </div>
 
             <div className="pt-4 space-y-3">
+              {/* SECURE FIX: Only ONE single unified Login button */}
               <Button
-                onClick={(e) => handleSubmit(e, 'student')}
+                type="submit"
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
               >
                 <Lock className="w-4 h-4 mr-2" />
-                Login as Student
-              </Button>
-
-              <Button
-                onClick={(e) => handleSubmit(e, 'admin')}
-                variant="outline"
-                className="w-full border-slate-700 bg-slate-800 hover:bg-slate-700 text-white"
-              >
-                <Shield className="w-4 h-4 mr-2" />
-                Login as Admin
+                Login
               </Button>
             </div>
           </form>
