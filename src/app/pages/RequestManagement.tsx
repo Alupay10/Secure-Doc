@@ -12,10 +12,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
+import * as requestService from '../../services/requestService';
+import * as documentService from '../../services/documentService';
+import * as auditService from '../../services/auditService';
+import { handleError } from '../../utils/errorHandler';
 
 export default function RequestManagement() {
   const { user } = useAuth();
-  const { uploadDocument, getDocumentByRequestId } = useDocuments();
+  const { uploadDocument } = useDocuments();
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState('all');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -33,19 +37,54 @@ export default function RequestManagement() {
     }
   }, [user, navigate]);
 
-  const requests = [
-    { id: '1250', user: 'Alice Johnson', email: 'alice@university.edu', type: 'Official Transcript', status: 'pending', date: '2026-04-28', purpose: 'Job Application' },
-    { id: '1249', user: 'Bob Smith', email: 'bob@university.edu', type: 'Certificate of Enrollment', status: 'pending', date: '2026-04-28', purpose: 'Visa Application' },
-    { id: '1248', user: 'Carol White', email: 'carol@university.edu', type: 'Grade Report', status: 'pending', date: '2026-04-27', purpose: 'Scholarship' },
-    { id: '1247', user: 'John Doe', email: 'john@university.edu', type: 'Official Transcript', status: 'approved', date: '2026-04-26', purpose: 'Job Application' },
-    { id: '1246', user: 'Emma Davis', email: 'emma@university.edu', type: 'Degree Certificate', status: 'approved', date: '2026-04-26', purpose: 'Employment' },
-    { id: '1245', user: 'Michael Brown', email: 'michael@university.edu', type: 'Recommendation Letter', status: 'rejected', date: '2026-04-25', purpose: 'Graduate School' },
-  ];
+  const [requests, setRequests] = useState<any[]>([]);
+  const [docsMap, setDocsMap] = useState<Record<string, any[]>>({});
+  const [loadingRequests, setLoadingRequests] = useState(false);
 
-  const filteredRequests = requests.filter(req => statusFilter === 'all' || req.status === statusFilter);
+  const filteredRequests = requests.filter((req) => statusFilter === 'all' || req.status === statusFilter);
 
-  const handleApprove = (id: string) => {
-    toast.success(`Request #${id} has been approved`);
+  const loadRequests = async () => {
+    setLoadingRequests(true);
+    try {
+      const data = await requestService.getAllRequests();
+      setRequests(data || []);
+
+      // Preload documents for each request (small optimization)
+      const map: Record<string, any[]> = {};
+      await Promise.all((data || []).map(async (r: any) => {
+        try {
+          const docs = await documentService.getDocumentsByRequestId(r.id);
+          map[r.id] = docs || [];
+        } catch (e) {
+          map[r.id] = [];
+        }
+      }));
+      setDocsMap(map);
+    } catch (err) {
+      handleError(err, 'requests:load');
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  useEffect(() => {
+    loadRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleApprove = async (id: string) => {
+    if (!user) return;
+    try {
+      // Optimistic update
+      setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'approved' } : r)));
+      await requestService.updateRequestStatus(id, 'approved', 'Approved by admin');
+      await auditService.logActivity(user.id, 'Approve Request', `request:${id}`, 'info', null, user.email || undefined);
+      toast.success(`Request #${id} has been approved`);
+    } catch (err) {
+      handleError(err, 'request:approve');
+      // reload to ensure consistency
+      await loadRequests();
+    }
   };
 
   const openRejectModal = (requestId: string) => {
@@ -55,17 +94,29 @@ export default function RequestManagement() {
     setRejectionCategory('');
   };
 
-  const handleReject = () => {
+  const handleReject = async () => {
     if (!rejectionReason.trim() || !rejectionCategory) {
       toast.error('Please select a category and provide a reason for rejection');
       return;
     }
 
-    toast.error(`Request #${selectedRequest} has been rejected: ${rejectionReason}`);
-    setRejectModalOpen(false);
-    setSelectedRequest(null);
-    setRejectionReason('');
-    setRejectionCategory('');
+    if (!selectedRequest || !user) return;
+
+    try {
+      // optimistic update
+      setRequests((prev) => prev.map((r) => (r.id === selectedRequest ? { ...r, status: 'rejected' } : r)));
+      await requestService.updateRequestStatus(selectedRequest, 'rejected', `${rejectionCategory}: ${rejectionReason}`);
+      await auditService.logActivity(user.id, 'Reject Request', `request:${selectedRequest}`, 'info', { category: rejectionCategory, reason: rejectionReason }, user.email || undefined);
+
+      toast.success(`Request #${selectedRequest} has been rejected`);
+      setRejectModalOpen(false);
+      setSelectedRequest(null);
+      setRejectionReason('');
+      setRejectionCategory('');
+    } catch (err) {
+      handleError(err, 'request:reject');
+      await loadRequests();
+    }
   };
 
   const openUploadModal = (requestId: string) => {
@@ -116,24 +167,26 @@ export default function RequestManagement() {
       return;
     }
 
-    const now = new Date();
-    const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    if (!user) {
+      toast.error('Not authenticated');
+      return;
+    }
 
-    uploadDocument({
-      requestId: selectedRequest,
-      fileName: uploadFile.name,
-      fileType: uploadFile.type,
-      uploadedBy: user?.name || 'Admin',
-      uploadedAt: timestamp,
-      remarks: uploadRemarks,
-      encrypted: true,
-    });
-
-    toast.success(`Document uploaded successfully for request #${selectedRequest}`);
-    setUploadModalOpen(false);
-    setSelectedRequest(null);
-    setUploadFile(null);
-    setUploadRemarks('');
+    (async () => {
+      try {
+        const doc = await uploadDocument(selectedRequest, uploadFile, uploadRemarks);
+        // update docsMap
+        setDocsMap((prev) => ({ ...prev, [selectedRequest]: [doc as any, ...(prev[selectedRequest] || [])] }));
+        await auditService.logActivity(user.id, 'Upload Document', `request:${selectedRequest}`, 'info', { file: uploadFile.name }, user.email || undefined);
+        toast.success(`Document uploaded successfully for request #${selectedRequest}`);
+        setUploadModalOpen(false);
+        setSelectedRequest(null);
+        setUploadFile(null);
+        setUploadRemarks('');
+      } catch (err) {
+        handleError(err, 'documents:upload');
+      }
+    })();
   };
 
   const getStatusBadge = (status: string) => {
@@ -258,7 +311,7 @@ export default function RequestManagement() {
                             </>
                           )}
 
-                          {request.status === 'approved' && !getDocumentByRequestId(request.id) && (
+                          {request.status === 'approved' && !(docsMap[request.id] && docsMap[request.id].length > 0) && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -271,7 +324,7 @@ export default function RequestManagement() {
                             </Button>
                           )}
 
-                          {getDocumentByRequestId(request.id) && (
+                          {docsMap[request.id] && docsMap[request.id].length > 0 && (
                             <>
                               <div className="flex items-center gap-2">
                                 <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 flex items-center gap-1">
@@ -289,7 +342,7 @@ export default function RequestManagement() {
                             </>
                           )}
 
-                          {!getDocumentByRequestId(request.id) && request.status !== 'approved' && (
+                          {!(docsMap[request.id] && docsMap[request.id].length > 0) && request.status !== 'approved' && (
                             <Button size="sm" variant="outline" className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-white">
                               <Eye className="w-3 h-3" />
                             </Button>

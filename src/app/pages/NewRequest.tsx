@@ -8,6 +8,10 @@ import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
+import { useAuth } from '../context/AuthContext';
+import * as requestService from '../../services/requestService';
+import * as auditService from '../../services/auditService';
+import { handleError, validateRequestForm } from '../../utils/errorHandler';
 
 export default function NewRequest() {
   const navigate = useNavigate();
@@ -18,14 +22,42 @@ export default function NewRequest() {
     urgency: 'normal',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.documentType || !formData.purpose) {
-      toast.error('Please fill in all required fields');
+    const requestValidation = validateRequestForm(formData.documentType, formData.purpose);
+    if (!requestValidation.valid) {
+      toast.error(requestValidation.error || 'Please fill in all required fields');
       return;
     }
-    toast.success('Request submitted successfully!');
-    navigate('/requests');
+    if (!user) {
+      toast.error('You must be logged in to submit a request');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const req = await requestService.createRequest(
+        user.id,
+        formData.documentType,
+        formData.purpose,
+        user.email || undefined
+      );
+
+      await auditService.logActivity(user.id, 'Create Request', `request:${req.id}`, 'info', {
+        type: formData.documentType,
+        purpose: formData.purpose,
+      }, user.email || undefined);
+
+      toast.success('Request submitted successfully!');
+      navigate('/requests');
+    } catch (err) {
+      handleError(err, 'request:create');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -130,9 +162,10 @@ export default function NewRequest() {
                 <Button
                   type="submit"
                   className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                  disabled={loading}
                 >
                   <Send className="w-4 h-4 mr-2" />
-                  Submit Request
+                  {loading ? 'Submitting...' : 'Submit Request'}
                 </Button>
                 <Button
                   type="button"

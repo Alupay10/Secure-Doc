@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FileText, Clock, CheckCircle, XCircle, Download, Eye, Lock, Shield } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -6,21 +6,41 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { useDocuments } from '../context/DocumentContext';
+import { useAuth } from '../context/AuthContext';
+import * as requestService from '../../services/requestService';
+import * as documentService from '../../services/documentService';
+import { handleError } from '../../utils/errorHandler';
 import { toast } from 'sonner';
 
 export default function MyRequests() {
-  const { getDocumentByRequestId } = useDocuments();
+  const { getDocumentByRequestId, fetchDocumentsForRequest } = useDocuments();
+  const { user } = useAuth();
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const requests = [
-    { id: '1247', type: 'Official Transcript', status: 'approved', date: '2026-04-26', purpose: 'Job Application', lastAccessed: '2 hours ago' },
-    { id: '1245', type: 'Certificate of Enrollment', status: 'pending', date: '2026-04-27', purpose: 'Scholarship Application', lastAccessed: 'Never' },
-    { id: '1243', type: 'Grade Report', status: 'pending', date: '2026-04-27', purpose: 'Personal Records', lastAccessed: 'Never' },
-    { id: '1240', type: 'Recommendation Letter', status: 'approved', date: '2026-04-25', purpose: 'Graduate School', lastAccessed: '1 day ago' },
-    { id: '1238', type: 'Official Transcript', status: 'approved', date: '2026-04-24', purpose: 'University Transfer', lastAccessed: '3 days ago' },
-    { id: '1235', type: 'Degree Certificate', status: 'rejected', date: '2026-04-23', purpose: 'Employment Verification', lastAccessed: '5 days ago' },
-  ];
+  useEffect(() => {
+    const loadRequests = async () => {
+      if (!user) return;
+
+      setLoading(true);
+      try {
+        const data = await requestService.getUserRequests(user.id);
+        setRequests(data);
+
+        await Promise.all(
+          data.map((request) => fetchDocumentsForRequest(request.id))
+        );
+      } catch (err) {
+        handleError(err, 'requests:load');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadRequests();
+  }, [user, fetchDocumentsForRequest]);
 
   const filteredRequests = requests.filter(req => {
     const matchesFilter = filter === 'all' || req.status === filter;
@@ -49,6 +69,29 @@ export default function MyRequests() {
       rejected: 'bg-red-500/20 text-red-300 border-red-500/30',
     };
     return variants[status as keyof typeof variants] || variants.pending;
+  };
+
+  const handleDownload = async (requestId: string) => {
+    const document = getDocumentByRequestId(requestId);
+    if (!document?.id) {
+      toast.error('Document is not available yet');
+      return;
+    }
+
+    try {
+      const blob = await documentService.downloadDocument(document.id);
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = window.document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = document.fileName || 'document';
+      window.document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+      toast.success('Document download started');
+    } catch (err) {
+      handleError(err, 'documents:download');
+    }
   };
 
   return (
@@ -87,6 +130,12 @@ export default function MyRequests() {
             </div>
           </CardContent>
         </Card>
+
+        {loading && (
+          <Card className="bg-slate-900 border-slate-800 mb-6">
+            <CardContent className="py-6 text-slate-400">Loading your requests...</CardContent>
+          </Card>
+        )}
 
         <div className="space-y-4">
           {filteredRequests.map((request) => (
@@ -139,7 +188,7 @@ export default function MyRequests() {
                         <Button
                           size="sm"
                           className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                          onClick={() => toast.success('Document downloaded successfully')}
+                          onClick={() => handleDownload(request.id)}
                         >
                           <Download className="w-4 h-4 mr-2" />
                           Download Document
