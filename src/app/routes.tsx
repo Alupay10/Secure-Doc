@@ -10,6 +10,7 @@ import MyRequests from './pages/MyRequests';
 import NewRequest from './pages/NewRequest';
 import Unauthorized from './pages/Unauthorized';
 import ProtectedRoute from './components/layouts/ProtectedRoute';
+import SecurityOverview from './pages/SecurityOverview';
 
 export const router = createBrowserRouter([
   {
@@ -30,6 +31,8 @@ export const router = createBrowserRouter([
       { path: 'admin/activity-logs', Component: ActivityLogs },
       { path: 'unauthorized', Component: Unauthorized },
       { path: '*', element: <Navigate to="/dashboard" replace /> },
+      { path: 'admin/security', element: <ProtectedRoute requiredRole="admin"><SecurityOverview /></ProtectedRoute> },
+
       // Student routes
       { path: 'dashboard', element: <ProtectedRoute requiredRole="student"><StudentDashboard /></ProtectedRoute> },
       { path: 'requests', element: <ProtectedRoute requiredRole="student"><MyRequests /></ProtectedRoute> },

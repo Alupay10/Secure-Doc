@@ -10,7 +10,8 @@ import {
   LogOut,
   Lock,
   FileStack,
-  AlertCircle
+  AlertCircle,
+  ShieldCheck
 } from 'lucide-react';
 import { useEffect } from 'react';
 
@@ -40,6 +41,7 @@ export default function RootLayout() {
     { path: '/admin/requests', icon: FileStack, label: 'Request Management' },
     { path: '/admin/access-control', icon: Users, label: 'Access Control' },
     { path: '/admin/activity-logs', icon: Activity, label: 'Activity Logs' },
+    { path: '/admin/security', icon: ShieldCheck, label: 'Security Overview' },
   ];
 
   const navItems = user?.role === 'admin' ? adminNavItems : studentNavItems;
