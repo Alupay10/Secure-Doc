@@ -49,6 +49,7 @@ export const getUserRequests = async (userId: string): Promise<Request[]> => {
     .from('requests')
     .select('*')
     .eq('user_id', userId)
+    .is('deleted_at', null)
     .order('date', { ascending: false });
 
   if (error) throw error;

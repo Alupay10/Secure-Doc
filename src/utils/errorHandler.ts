@@ -211,7 +211,13 @@ export const validateRequestForm = (
 export const validateFile = (
   file: File,
   maxSizeMB: number = 100,
-  allowedTypes: string[] = ['application/pdf', 'image/jpeg', 'image/png', 'application/msword']
+  allowedTypes: string[] = [
+    'application/pdf',
+    'image/jpeg',
+    'image/png',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+  ]
 ): { valid: boolean; error?: string } => {
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
 

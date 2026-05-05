@@ -13,7 +13,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, role?: UserRole) => Promise<void>;
+  login: (email: string, password: string) => Promise<UserRole>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -63,12 +63,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<UserRole> => {
     try {
-      await signIn(email, password);
-      // signIn triggers auth state change which will update user
+      const { user } = await signIn(email, password);
+      const role = (user.user_metadata?.role as UserRole) || 'student';
+      return role;
     } catch (err) {
-      handleError(err, 'auth:login');
       throw err;
     }
   };

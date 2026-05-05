@@ -12,15 +12,14 @@ export interface UserProfile extends User {
  */
 export const signUp = async (
   email: string,
-  password: string,
-  role: UserRole = 'student'
+  password: string
 ): Promise<User> => {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
-        role,
+        role: 'student' // default role for new users
       },
     },
   });
@@ -79,11 +78,11 @@ export const getSession = async () => {
  * Listen for authentication state changes
  */
 export const onAuthStateChange = (
-  callback: (user: User | null, session: any) => void
+  callback: (user: User | null) => void
 ) => {
   const { data } = supabase.auth.onAuthStateChange(
     (event, session) => {
-      callback(session?.user || null, session);
+      callback(session?.user || null);
     }
   );
 

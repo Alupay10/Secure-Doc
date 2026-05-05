@@ -9,6 +9,7 @@ import ActivityLogs from './pages/ActivityLogs';
 import MyRequests from './pages/MyRequests';
 import NewRequest from './pages/NewRequest';
 import Unauthorized from './pages/Unauthorized';
+import ProtectedRoute from './components/layouts/ProtectedRoute';
 
 export const router = createBrowserRouter([
   {
@@ -29,6 +30,16 @@ export const router = createBrowserRouter([
       { path: 'admin/activity-logs', Component: ActivityLogs },
       { path: 'unauthorized', Component: Unauthorized },
       { path: '*', element: <Navigate to="/dashboard" replace /> },
+      // Student routes
+      { path: 'dashboard', element: <ProtectedRoute requiredRole="student"><StudentDashboard /></ProtectedRoute> },
+      { path: 'requests', element: <ProtectedRoute requiredRole="student"><MyRequests /></ProtectedRoute> },
+      { path: 'new-request', element: <ProtectedRoute requiredRole="student"><NewRequest /></ProtectedRoute> },
+
+      // Admin routes
+      { path: 'admin-dashboard', element: <ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute> },
+      { path: 'admin/requests', element: <ProtectedRoute requiredRole="admin"><RequestManagement /></ProtectedRoute> },
+      { path: 'admin/access-control', element: <ProtectedRoute requiredRole="admin"><DataAccessControl /></ProtectedRoute> },
+      { path: 'admin/activity-logs', element: <ProtectedRoute requiredRole="admin"><ActivityLogs /></ProtectedRoute> },
     ],
   },
 ]);

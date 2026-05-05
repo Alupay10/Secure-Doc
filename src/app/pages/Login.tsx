@@ -14,7 +14,7 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent, targetRole: 'student' | 'admin') => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       toast.error('Please fill in all fields');
@@ -32,9 +32,9 @@ export default function Login() {
     }
 
     try {
-      await login(email, password);
+      const role = await login(email, password);
       toast.success('Logged in');
-      navigate(targetRole === 'admin' ? '/admin-dashboard' : '/dashboard');
+      navigate(role === 'admin' ? '/admin-dashboard' : '/dashboard');
     } catch (err: any) {
       handleError(err, 'auth:login');
     }
@@ -90,20 +90,11 @@ export default function Login() {
 
             <div className="pt-4 space-y-3">
               <Button
-                onClick={(e) => handleSubmit(e, 'student')}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                onClick={handleSubmit}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"
               >
                 <Lock className="w-4 h-4 mr-2" />
-                Login as Student
-              </Button>
-
-              <Button
-                onClick={(e) => handleSubmit(e, 'admin')}
-                variant="outline"
-                className="w-full border-slate-700 bg-slate-800 hover:bg-slate-700 text-white"
-              >
-                <Shield className="w-4 h-4 mr-2" />
-                Login as Admin
+                Login
               </Button>
             </div>
           </form>
