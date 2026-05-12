@@ -1,6 +1,6 @@
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Shield,
   Users,
@@ -12,44 +12,84 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  Loader2,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
+import {
+  getDashboardStats,
+  getRequestsOverTime,
+  getStatusDistribution,
+  getDocumentTypeDistribution,
+  DashboardStats,
+  TimeSeriesData,
+  StatusDistribution,
+  DocumentTypeDistribution,
+} from '../../services/dashboardService';
+import { getRecentActivity, ActivityLog } from '../../services/auditService';
 
 export default function AdminDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [requestsOverTime, setRequestsOverTime] = useState<TimeSeriesData[]>([]);
+  const [statusDistribution, setStatusDistribution] = useState<StatusDistribution[]>([]);
+  const [documentTypes, setDocumentTypes] = useState<DocumentTypeDistribution[]>([]);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
 
   useEffect(() => {
     if (user?.role !== 'admin') {
       navigate('/unauthorized');
+      return;
     }
+
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [
+          statsData,
+          requestsOverTimeData,
+          statusDistributionData,
+          docTypeData,
+          activityData,
+        ] = await Promise.all([
+          getDashboardStats(),
+          getRequestsOverTime(),
+          getStatusDistribution(),
+          getDocumentTypeDistribution(),
+          getRecentActivity({ limit: 5 }),
+        ]);
+
+        setStats(statsData);
+        setRequestsOverTime(requestsOverTimeData);
+        setStatusDistribution(statusDistributionData);
+        setDocumentTypes(docTypeData);
+        setActivityLogs(activityData);
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [user, navigate]);
-
-  const requestsOverTime = [
-    { date: '04/21', requests: 12 },
-    { date: '04/22', requests: 19 },
-    { date: '04/23', requests: 15 },
-    { date: '04/24', requests: 25 },
-    { date: '04/25', requests: 22 },
-    { date: '04/26', requests: 30 },
-    { date: '04/27', requests: 28 },
-    { date: '04/28', requests: 35 },
-  ];
-
-  const statusDistribution = [
-    { name: 'Approved', value: 145, color: '#10b981' },
-    { name: 'Pending', value: 42, color: '#f59e0b' },
-    { name: 'Rejected', value: 23, color: '#ef4444' },
-  ];
-
-  const documentTypes = [
-    { type: 'Transcript', count: 85 },
-    { type: 'Certificate', count: 62 },
-    { type: 'Enrollment', count: 48 },
-    { type: 'Other', count: 15 },
-  ];
 
   const securityAlerts = [
     { id: 1, type: 'warning', message: 'Multiple rapid requests detected from user ID: STU-2847', time: '2 min ago', severity: 'medium' },
@@ -58,13 +98,13 @@ export default function AdminDashboard() {
     { id: 4, type: 'warning', message: 'User attempted to access restricted admin panel', time: '2 hours ago', severity: 'medium' },
   ];
 
-  const activityLogs = [
-    { id: 1, user: 'Admin User', action: 'Approved request #1247', resource: 'Transcript Request', time: '5 min ago' },
-    { id: 2, user: 'John Doe', action: 'Submitted new request', resource: 'Certificate Request', time: '12 min ago' },
-    { id: 3, user: 'Admin User', action: 'Rejected request #1245', resource: 'Enrollment Letter', time: '25 min ago' },
-    { id: 4, user: 'Jane Smith', action: 'Updated profile', resource: 'User Profile', time: '45 min ago' },
-    { id: 5, user: 'Admin User', action: 'Modified access permissions', resource: 'Access Control', time: '1 hour ago' },
-  ];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-950">
+        <Loader2 className="w-12 h-12 text-indigo-400 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 p-8">
@@ -81,7 +121,7 @@ export default function AdminDashboard() {
           <Card className="bg-slate-900 border-slate-800">
             <CardHeader className="pb-3">
               <CardDescription className="text-slate-400">Total Users</CardDescription>
-              <CardTitle className="text-3xl text-white">1,247</CardTitle>
+              <CardTitle className="text-3xl text-white">{stats?.totalUsers ?? 'N/A'}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-emerald-400 text-sm">
@@ -94,12 +134,12 @@ export default function AdminDashboard() {
           <Card className="bg-slate-900 border-slate-800">
             <CardHeader className="pb-3">
               <CardDescription className="text-slate-400">Total Requests</CardDescription>
-              <CardTitle className="text-3xl text-white">210</CardTitle>
+              <CardTitle className="text-3xl text-white">{stats?.totalRequests ?? 'N/A'}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-indigo-400 text-sm">
                 <FileText className="w-4 h-4 mr-1" />
-                <span>35 this week</span>
+                <span>in total</span>
               </div>
             </CardContent>
           </Card>
@@ -107,7 +147,7 @@ export default function AdminDashboard() {
           <Card className="bg-slate-900 border-slate-800">
             <CardHeader className="pb-3">
               <CardDescription className="text-slate-400">Pending Approvals</CardDescription>
-              <CardTitle className="text-3xl text-amber-400">42</CardTitle>
+              <CardTitle className="text-3xl text-amber-400">{stats?.pendingApprovals ?? 'N/A'}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-amber-400 text-sm">
@@ -120,7 +160,7 @@ export default function AdminDashboard() {
           <Card className="bg-slate-900 border-slate-800">
             <CardHeader className="pb-3">
               <CardDescription className="text-slate-400">Rejection Rate</CardDescription>
-              <CardTitle className="text-3xl text-white">10.9%</CardTitle>
+              <CardTitle className="text-3xl text-white">{stats?.rejectionRate.toFixed(1) ?? 'N/A'}%</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-emerald-400 text-sm">
@@ -255,12 +295,12 @@ export default function AdminDashboard() {
                     <div className="w-2 h-2 rounded-full bg-indigo-400"></div>
                     <div>
                       <p className="text-sm text-white">
-                        <span className="font-medium">{log.user}</span> {log.action}
+                        <span className="font-medium">{log.user_email || 'System'}</span> {log.action}
                       </p>
                       <p className="text-xs text-slate-400">{log.resource}</p>
                     </div>
                   </div>
-                  <span className="text-xs text-slate-500">{log.time}</span>
+                  <span className="text-xs text-slate-500">{new Date(log.created_at).toLocaleTimeString()}</span>
                 </div>
               ))}
             </div>

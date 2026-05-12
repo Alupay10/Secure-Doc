@@ -179,6 +179,51 @@ FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
 -- ==========================================
+-- 9. DASHBOARD FUNCTIONS
+-- ==========================================
+
+CREATE OR REPLACE FUNCTION get_requests_over_time()
+RETURNS TABLE(day DATE, count BIGINT) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    date_trunc('day', created_at)::date AS day,
+    count(id)
+  FROM public.requests
+  WHERE created_at >= now() - interval '14 days' AND deleted_at IS NULL
+  GROUP BY day
+  ORDER BY day;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_status_distribution()
+RETURNS TABLE(status VARCHAR, count BIGINT) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    r.status,
+    count(r.id)
+  FROM public.requests r
+  WHERE r.deleted_at IS NULL
+  GROUP BY r.status;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_document_type_distribution()
+RETURNS TABLE(type VARCHAR, count BIGINT) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    r.type,
+    count(r.id)
+  FROM public.requests r
+  WHERE r.deleted_at IS NULL
+  GROUP BY r.type
+  ORDER BY count DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ==========================================
 -- NOTES:
 -- ==========================================
 -- 1. Row-Level Security (RLS) policies are defined in rls-policies.sql

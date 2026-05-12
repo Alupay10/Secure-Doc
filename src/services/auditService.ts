@@ -1,121 +1,84 @@
 import { supabase } from './supabaseClient';
+import { handleError } from '../utils/errorHandler';
 
 export type ActivitySeverity = 'info' | 'warning' | 'critical';
 
 export interface ActivityLog {
   id: string;
   user_id: string;
-  user_email?: string;
+  user_email: string;
   action: string;
   resource: string;
-  details?: Record<string, any>;
+  details: any;
   severity: ActivitySeverity;
-  ip_address?: string;
-  user_agent?: string;
+  ip_address: string;
+  user_agent: string;
   created_at: string;
 }
 
-/**
- * Get user's IP address (client-side approximation)
- */
-const getClientIP = async (): Promise<string> => {
+export interface ActivityFilters {
+  limit?: number;
+  offset?: number;
+  user_id?: string;
+  severity?: string;
+  action?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export const logActivity = async (log: Omit<ActivityLog, 'id' | 'created_at'>): Promise<void> => {
   try {
-    const response = await fetch('https://api.ipify.org?format=json');
-    const data = await response.json();
-    return data.ip || 'unknown';
-  } catch {
-    return 'unknown';
+    const { error } = await supabase.from('activity_logs').insert(log);
+    if (error) throw error;
+  } catch (error) {
+    handleError(error, 'Failed to log activity');
   }
 };
 
-/**
- * Log an activity to the audit trail
- */
-export const logActivity = async (
-  userId: string,
-  action: string,
-  resource: string,
-  severity: ActivitySeverity = 'info',
-  details?: Record<string, any>,
-  userEmail?: string
-): Promise<ActivityLog> => {
-  const ipAddress = await getClientIP();
-  const userAgent = navigator.userAgent;
+export const getRecentActivity = async (filters: ActivityFilters): Promise<ActivityLog[]> => {
+  try {
+    let query = supabase
+      .from('activity_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(filters.limit ?? 10);
 
-  const { data, error } = await supabase
-    .from('activity_logs')
-    .insert([
-      {
-        user_id: userId,
-        user_email: userEmail || null,
-        action,
-        resource,
-        details: details || null,
-        severity,
-        ip_address: ipAddress,
-        user_agent: userAgent,
-        created_at: new Date().toISOString(),
-      },
-    ])
-    .select()
-    .single();
-
-  if (error) throw error;
-  if (!data) throw new Error('Failed to log activity');
-
-  return data as ActivityLog;
+    const { data, error } = await query;
+    if (error) throw error;
+    return data as ActivityLog[];
+  } catch (error) {
+    handleError(error, 'Failed to fetch recent activity');
+    return [];
+  }
 };
 
 /**
  * Get activity logs with optional filters
  */
 export const getActivityLogs = async (
-  filters?: {
-    userId?: string;
-    action?: string;
-    severity?: ActivitySeverity;
-    startDate?: string;
-    endDate?: string;
-    limit?: number;
-    offset?: number;
+  filters: ActivityFilters
+): Promise<{ logs: ActivityLog[], count: number }> => {
+  try {
+    let query = supabase.from('activity_logs').select('*', { count: 'exact' });
+
+    if (filters.user_id) query = query.eq('user_id', filters.user_id);
+    if (filters.severity) query = query.eq('severity', filters.severity);
+    if (filters.action) query = query.ilike('action', `%${filters.action}%`);
+    if (filters.startDate) query = query.gte('created_at', filters.startDate);
+    if (filters.endDate) query = query.lte('created_at', filters.endDate);
+
+    query = query
+      .order('created_at', { ascending: false })
+      .range(filters.offset ?? 0, (filters.offset ?? 0) + (filters.limit ?? 10) - 1);
+
+    const { data, error, count } = await query;
+
+    if (error) throw error;
+    return { logs: data as ActivityLog[], count: count ?? 0 };
+  } catch (error) {
+    handleError(error, 'Failed to fetch activity logs');
+    return { logs: [], count: 0 };
   }
-): Promise<ActivityLog[]> => {
-  let query = supabase.from('activity_logs').select('*');
-
-  if (filters?.userId) {
-    query = query.eq('user_id', filters.userId);
-  }
-
-  if (filters?.action) {
-    query = query.ilike('action', `%${filters.action}%`);
-  }
-
-  if (filters?.severity) {
-    query = query.eq('severity', filters.severity);
-  }
-
-  if (filters?.startDate) {
-    query = query.gte('created_at', filters.startDate);
-  }
-
-  if (filters?.endDate) {
-    query = query.lte('created_at', filters.endDate);
-  }
-
-  query = query.order('created_at', { ascending: false });
-
-  if (filters?.limit) {
-    query = query.limit(filters.limit);
-  }
-
-  if (filters?.offset) {
-    query = query.range(filters.offset, (filters.offset || 0) + (filters.limit || 10) - 1);
-  }
-
-  const { data, error } = await query;
-
-  if (error) throw error;
-  return (data || []) as ActivityLog[];
 };
 
 /**
@@ -217,13 +180,13 @@ export const getUserActivityTimeline = async (
  */
 export const exportActivityLogs = async (
   filters?: {
-    userId?: string;
+    user_id?: string;
     startDate?: string;
     endDate?: string;
   }
 ): Promise<string> => {
-  const logs = await getActivityLogs({
-    userId: filters?.userId,
+  const { logs } = await getActivityLogs({
+    user_id: filters?.user_id,
     startDate: filters?.startDate,
     endDate: filters?.endDate,
     limit: 10000, // Fetch up to 10k records for export
