@@ -183,8 +183,6 @@ export default function MyRequests() {
           purpose: updated.purpose,
           remarks: updated.remarks || null,
         },
-        severity: 'info',
-        ip_address: '',
         user_agent: navigator.userAgent,
       });
 
@@ -226,8 +224,6 @@ export default function MyRequests() {
           purpose: deleteRequestItem.purpose,
           status: deleteRequestItem.status,
         },
-        severity: 'info',
-        ip_address: '',
         user_agent: navigator.userAgent,
       });
 
