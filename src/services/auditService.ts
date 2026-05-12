@@ -8,6 +8,8 @@ export interface ActivityLog {
   action: string;
   resource: string;
   details: any;
+  severity: 'info' | 'warning' | 'critical';
+  ip_address: string;
   user_agent: string;
   created_at: string;
 }

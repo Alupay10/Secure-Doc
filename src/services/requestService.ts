@@ -45,6 +45,8 @@ export const createRequest = async (
     action: 'Created Request',
     resource: 'Document Request',
     details: { requestId: data.id, type, purpose },
+    severity: 'info',
+    ip_address: '',
     user_agent: navigator.userAgent,
   });
 
@@ -143,6 +145,8 @@ export const updateRequestStatus = async (
     action: `Updated Request Status to ${status}`,
     resource: 'Document Request',
     details: { requestId, remarks },
+    severity: 'info',
+    ip_address: '',
     user_agent: navigator.userAgent,
   });
 
