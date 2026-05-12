@@ -49,8 +49,6 @@ export const signIn = async (email: string, password: string) => {
     action: 'User Signed In',
     resource: 'Authentication',
     details: { provider: 'email' },
-    severity: 'info',
-    ip_address: '', // IP address should be captured server-side if possible
     user_agent: navigator.userAgent,
   });
 

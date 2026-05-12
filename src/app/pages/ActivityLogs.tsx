@@ -1,10 +1,9 @@
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router';
 import { useEffect, useState, useMemo } from 'react';
-import { Activity, Search, Download, AlertTriangle, BarChart2, PieChart as PieIcon, Clock } from 'lucide-react';
+import { Activity, Search, Download, BarChart2, PieChart as PieIcon, Clock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import {
@@ -25,16 +24,6 @@ const tooltipStyle = {
   },
 };
 
-// ── Badge helper ────────────────────────────────────────────────────────────
-const getSeverityBadge = (severity: string) => {
-  const variants: Record<string, string> = {
-    critical: 'bg-red-500/20 text-red-300 border-red-500/30',
-    warning:  'bg-amber-500/20 text-amber-300 border-amber-500/30',
-    info:     'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  };
-  return variants[severity] || variants.info;
-};
-
 // ── Component ───────────────────────────────────────────────────────────────
 export default function ActivityLogs() {
   const { user }    = useAuth();
@@ -42,7 +31,6 @@ export default function ActivityLogs() {
   const [logs, setLogs]               = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading]     = useState(true);
   const [search, setSearch]           = useState('');
-  const [actionFilter, setActionFilter] = useState('all');
   const [activeTab, setActiveTab]     = useState<'charts' | 'timeline'>('charts');
 
   useEffect(() => {
@@ -94,17 +82,7 @@ export default function ActivityLogs() {
     });
   }, [logs]);
 
-  const severityCounts = useMemo(() => ({
-    info:     logs.filter((l) => l.severity === 'info').length,
-    warning:  logs.filter((l) => l.severity === 'warning').length,
-    critical: logs.filter((l) => l.severity === 'critical').length,
-  }), [logs]);
 
-  const severityData = useMemo(() => [
-    { name: 'Info',     value: severityCounts.info,     color: '#3b82f6' },
-    { name: 'Warning',  value: severityCounts.warning,  color: '#f59e0b' },
-    { name: 'Critical', value: severityCounts.critical, color: '#ef4444' },
-  ], [severityCounts]);
 
   const topActions = useMemo(() => {
     const actionCounts: Record<string, number> = {};
@@ -116,11 +94,11 @@ export default function ActivityLogs() {
   }, [logs]);
 
   const dailyActivity = useMemo(() => {
-    const days: Record<string, { info: number, warning: number, critical: number }> = {};
+    const days: Record<string, { events: number }> = {};
     logs.forEach((log) => {
       const date = new Date(log.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' });
-      if (!days[date]) days[date] = { info: 0, warning: 0, critical: 0 };
-      days[date][log.severity]++;
+      if (!days[date]) days[date] = { events: 0 };
+      days[date].events++;
     });
     
     return Object.entries(days)
@@ -140,10 +118,9 @@ export default function ActivityLogs() {
         userName.includes(searchLower) ||
         actionName.includes(searchLower) ||
         resourceName.includes(searchLower);
-      const matchesFilter = actionFilter === 'all' || log.severity === actionFilter;
-      return matchesSearch && matchesFilter;
+      return matchesSearch;
     });
-  }, [logs, search, actionFilter]);
+  }, [logs, search]);
 
   if (isLoading) {
     return (
@@ -178,18 +155,7 @@ export default function ActivityLogs() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-800">
-            <CardHeader className="pb-3">
-              <CardDescription className="text-slate-400">Critical Alerts</CardDescription>
-              <CardTitle className="text-3xl text-red-400">{severityCounts.critical}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2 text-sm text-red-400">
-                <AlertTriangle className="w-4 h-4" />
-                <span>Requires attention</span>
-              </div>
-            </CardContent>
-          </Card>
+
 
           <Card className="bg-slate-900 border-slate-800">
             <CardHeader className="pb-3">
@@ -247,49 +213,9 @@ export default function ActivityLogs() {
                       <YAxis stroke="#94a3b8" fontSize={12} allowDecimals={false} />
                       <Tooltip {...tooltipStyle} />
                       <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
-                      <Bar dataKey="info"     name="Info"     stackId="a" fill="#3b82f6" />
-                      <Bar dataKey="warning"  name="Warning"  stackId="a" fill="#f59e0b" />
-                      <Bar dataKey="critical" name="Critical" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="events" name="Events" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-900 border-slate-800">
-                <CardHeader>
-                  <CardTitle className="text-white">Severity Distribution</CardTitle>
-                  <CardDescription className="text-slate-400">Proportion of events by severity level</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={260}>
-                    <PieChart>
-                      <Pie
-                        data={severityData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={65}
-                        outerRadius={100}
-                        paddingAngle={3}
-                        dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        labelLine={false}
-                      >
-                        {severityData.map((entry) => (
-                          <Cell key={entry.name} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip {...tooltipStyle} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  {/* Legend */}
-                  <div className="flex justify-center gap-6 mt-2">
-                    {severityData.map((s) => (
-                      <div key={s.name} className="flex items-center gap-2 text-xs text-slate-400">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
-                        {s.name} ({s.value})
-                      </div>
-                    ))}
-                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -339,14 +265,8 @@ export default function ActivityLogs() {
         {activeTab === 'timeline' && (
           <div className="mb-6 space-y-1">
             {logs.slice(0, 12).map((log, idx) => {
-              const dotColor =
-                log.severity === 'critical' ? 'bg-red-400'
-                : log.severity === 'warning'  ? 'bg-amber-400'
-                : 'bg-blue-400';
-              const lineColor =
-                log.severity === 'critical' ? 'border-red-900'
-                : log.severity === 'warning'  ? 'border-amber-900'
-                : 'border-slate-800';
+              const dotColor = 'bg-blue-400';
+              const lineColor = 'border-slate-800';
               return (
                 <div key={log.id} className="flex gap-4">
                   {/* Spine */}
@@ -357,13 +277,7 @@ export default function ActivityLogs() {
                     )}
                   </div>
                   {/* Card */}
-                  <div className={`flex-1 mb-3 p-4 rounded-lg border bg-slate-900 ${
-                    log.severity === 'critical'
-                      ? 'border-red-900/60 bg-red-950/10'
-                      : log.severity === 'warning'
-                      ? 'border-amber-900/60'
-                      : 'border-slate-800'
-                  }`}>
+                  <div className={`flex-1 mb-3 p-4 rounded-lg border bg-slate-900 border-slate-800`}>
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <p className="text-sm font-medium text-white">{log.action}</p>
@@ -371,13 +285,10 @@ export default function ActivityLogs() {
                         <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
                           <span className="font-medium text-slate-300">{log.user_email || log.user_id}</span>
                           <span>·</span>
-                          <span className="font-mono">{log.ip_address || 'unknown'}</span>
-                          <span>·</span>
                           <span className="font-mono">{log.user_id}</span>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-2 shrink-0">
-                        <Badge className={getSeverityBadge(log.severity)}>{log.severity}</Badge>
                         <span className="text-xs text-slate-500 font-mono">
                           {new Date(log.created_at).toLocaleString()}
                         </span>
@@ -403,17 +314,7 @@ export default function ActivityLogs() {
                   className="pl-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
                 />
               </div>
-              <Select value={actionFilter} onValueChange={setActionFilter}>
-                <SelectTrigger className="w-full md:w-48 bg-slate-800 border-slate-700 text-white">
-                  <SelectValue placeholder="Filter by severity" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="all">All Events</SelectItem>
-                  <SelectItem value="critical">Critical</SelectItem>
-                  <SelectItem value="warning">Warning</SelectItem>
-                  <SelectItem value="info">Info</SelectItem>
-                </SelectContent>
-              </Select>
+
               <Button onClick={handleExport} variant="outline" className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-white cursor-pointer">
                 <Download className="w-4 h-4 mr-2" />
                 Export
@@ -442,17 +343,13 @@ export default function ActivityLogs() {
                     <th className="text-left text-sm font-medium text-slate-400 pb-3">User</th>
                     <th className="text-left text-sm font-medium text-slate-400 pb-3">Action</th>
                     <th className="text-left text-sm font-medium text-slate-400 pb-3">Resource</th>
-                    <th className="text-left text-sm font-medium text-slate-400 pb-3">IP Address</th>
-                    <th className="text-left text-sm font-medium text-slate-400 pb-3">Severity</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredLogs.map((log) => (
                     <tr
                       key={log.id}
-                      className={`border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors ${
-                        log.severity === 'critical' ? 'bg-red-950/10' : ''
-                      }`}
+                      className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors"
                     >
                       <td className="py-4 text-sm text-white font-mono">
                         {new Date(log.created_at).toLocaleString()}
@@ -465,15 +362,11 @@ export default function ActivityLogs() {
                       </td>
                       <td className="py-4 text-sm text-white">{log.action}</td>
                       <td className="py-4 text-sm text-slate-400">{log.resource}</td>
-                      <td className="py-4 text-sm text-slate-400 font-mono">{log.ip_address || 'unknown'}</td>
-                      <td className="py-4">
-                        <Badge className={getSeverityBadge(log.severity)}>{log.severity}</Badge>
-                      </td>
                     </tr>
                   ))}
                   {filteredLogs.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-400">
+                      <td colSpan={4} className="py-8 text-center text-slate-400">
                         No activity logs found.
                       </td>
                     </tr>
