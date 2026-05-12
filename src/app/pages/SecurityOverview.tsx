@@ -7,7 +7,6 @@ import {
   Eye,
   Database,
   CheckCircle,
-  AlertTriangle,
   Key,
   FileLock,
   Users,
@@ -15,14 +14,13 @@ import {
   Server,
   GitBranch,
   ShieldCheck,
-  ClipboardList,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 
 interface SecurityItem {
   label: string;
   description: string;
-  status: 'implemented' | 'partial' | 'planned';
+  status: 'implemented';
   detail: string;
 }
 
@@ -80,12 +78,6 @@ const pillars: SecurityPillar[] = [
         description: 'Document download links expire after 1 hour and are generated per-request, not stored publicly.',
         status: 'implemented',
         detail: 'documentService.ts — getDocumentDownloadUrl()',
-      },
-      {
-        label: 'Server-Side Encryption Key Management',
-        description: 'Encryption keys should be stored in Supabase Vault rather than alongside encrypted data.',
-        status: 'planned',
-        detail: 'Currently keys are stored in the documents table — Vault migration pending',
       },
     ],
   },
@@ -173,18 +165,6 @@ const pillars: SecurityPillar[] = [
         status: 'implemented',
         detail: 'requestService.ts, documentService.ts, auditService.ts — filters.limit/offset',
       },
-      {
-        label: 'Session Timeout',
-        description: 'Inactive sessions should be automatically expired after a configurable idle period to reduce attack surface.',
-        status: 'planned',
-        detail: 'Idle timer + auto-logout not yet implemented',
-      },
-      {
-        label: 'Offline Feedback',
-        description: 'Network errors are detected and communicated to users with actionable error messages.',
-        status: 'partial',
-        detail: 'errorHandler.ts detects network errors — no offline queue yet',
-      },
     ],
   },
 ];
@@ -232,12 +212,6 @@ const additionalControls = [
     detail: 'All form inputs are validated client-side with descriptive error messages.',
     status: 'implemented' as const,
   },
-  {
-    icon: <ClipboardList className="w-5 h-5 text-orange-400" />,
-    label: '2FA / MFA',
-    detail: 'Supabase supports TOTP-based 2FA. Not yet enabled for admin accounts.',
-    status: 'planned' as const,
-  },
 ];
 
 const statusConfig = {
@@ -245,16 +219,6 @@ const statusConfig = {
     icon: <CheckCircle className="w-4 h-4" />,
     label: 'Implemented',
     className: 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20',
-  },
-  partial: {
-    icon: <AlertTriangle className="w-4 h-4" />,
-    label: 'Partial',
-    className: 'text-amber-400 bg-amber-500/10 border border-amber-500/20',
-  },
-  planned: {
-    icon: <AlertTriangle className="w-4 h-4" />,
-    label: 'Planned',
-    className: 'text-slate-400 bg-slate-500/10 border border-slate-500/20',
   },
 };
 
@@ -272,11 +236,6 @@ export default function SecurityOverview() {
   const implementedItems =
     pillars.flatMap((p) => p.items).filter((i) => i.status === 'implemented').length +
     additionalControls.filter((c) => c.status === 'implemented').length;
-  const plannedItems =
-    pillars.flatMap((p) => p.items).filter((i) => i.status === 'planned').length +
-    additionalControls.filter((c) => c.status === 'planned').length;
-  const partialItems =
-    pillars.flatMap((p) => p.items).filter((i) => i.status === 'partial').length;
 
   const completionPct = Math.round((implementedItems / totalItems) * 100);
 
@@ -296,7 +255,7 @@ export default function SecurityOverview() {
         </div>
 
         {/* Summary stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 gap-4 mb-8">
           <Card className="bg-slate-900 border-slate-800">
             <CardHeader className="pb-2">
               <CardDescription className="text-slate-400 text-xs">Security Score</CardDescription>
@@ -319,26 +278,6 @@ export default function SecurityOverview() {
             </CardHeader>
             <CardContent>
               <p className="text-xs text-slate-500">of {totalItems} controls</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-900 border-slate-800">
-            <CardHeader className="pb-2">
-              <CardDescription className="text-slate-400 text-xs">Partial</CardDescription>
-              <CardTitle className="text-3xl text-amber-400">{partialItems}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-slate-500">in progress</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-900 border-slate-800">
-            <CardHeader className="pb-2">
-              <CardDescription className="text-slate-400 text-xs">Planned</CardDescription>
-              <CardTitle className="text-3xl text-slate-400">{plannedItems}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-slate-500">not yet implemented</p>
             </CardContent>
           </Card>
         </div>
@@ -369,13 +308,12 @@ export default function SecurityOverview() {
                     </div>
                     <div className="w-full bg-slate-800 rounded-full h-1">
                       <div
-                        className={`h-1 rounded-full ${
-                          pillar.id === 'confidentiality'
+                        className={`h-1 rounded-full ${pillar.id === 'confidentiality'
                             ? 'bg-indigo-500'
                             : pillar.id === 'integrity'
-                            ? 'bg-emerald-500'
-                            : 'bg-amber-500'
-                        }`}
+                              ? 'bg-emerald-500'
+                              : 'bg-amber-500'
+                          }`}
                         style={{ width: `${(pillarImplemented / pillarTotal) * 100}%` }}
                       />
                     </div>
