@@ -5,9 +5,8 @@ import { Activity, Search, Download, BarChart2, PieChart as PieIcon, Clock } fro
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
 import {
-  BarChart, Bar, PieChart, Pie, Cell,
+  BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend,
 } from 'recharts';
@@ -26,19 +25,19 @@ const tooltipStyle = {
 
 // ── Component ───────────────────────────────────────────────────────────────
 export default function ActivityLogs() {
-  const { user }    = useAuth();
-  const navigate    = useNavigate();
-  const [logs, setLogs]               = useState<ActivityLog[]>([]);
-  const [isLoading, setIsLoading]     = useState(true);
-  const [search, setSearch]           = useState('');
-  const [activeTab, setActiveTab]     = useState<'charts' | 'timeline'>('charts');
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<'charts' | 'timeline'>('charts');
 
   useEffect(() => {
     if (user?.role !== 'admin') {
       navigate('/unauthorized');
       return;
     }
-    
+
     const fetchLogs = async () => {
       try {
         setIsLoading(true);
@@ -50,7 +49,7 @@ export default function ActivityLogs() {
         setIsLoading(false);
       }
     };
-    
+
     fetchLogs();
   }, [user, navigate]);
 
@@ -82,8 +81,6 @@ export default function ActivityLogs() {
     });
   }, [logs]);
 
-
-
   const topActions = useMemo(() => {
     const actionCounts: Record<string, number> = {};
     logs.forEach((l) => { actionCounts[l.action] = (actionCounts[l.action] || 0) + 1; });
@@ -100,7 +97,7 @@ export default function ActivityLogs() {
       if (!days[date]) days[date] = { events: 0 };
       days[date].events++;
     });
-    
+
     return Object.entries(days)
       .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
       .slice(-4) // Last 4 days
@@ -144,7 +141,7 @@ export default function ActivityLogs() {
         </div>
 
         {/* Stat cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <Card className="bg-slate-900 border-slate-800">
             <CardHeader className="pb-3">
               <CardDescription className="text-slate-400">Total Events</CardDescription>
@@ -154,8 +151,6 @@ export default function ActivityLogs() {
               <p className="text-sm text-slate-400">All time</p>
             </CardContent>
           </Card>
-
-
 
           <Card className="bg-slate-900 border-slate-800">
             <CardHeader className="pb-3">
@@ -172,22 +167,20 @@ export default function ActivityLogs() {
         <div className="flex gap-2 mb-6">
           <button
             onClick={() => setActiveTab('charts')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-              activeTab === 'charts'
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${activeTab === 'charts'
                 ? 'bg-indigo-600 text-white'
                 : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
-            }`}
+              }`}
           >
             <BarChart2 className="w-4 h-4" />
             Visualizations
           </button>
           <button
             onClick={() => setActiveTab('timeline')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-              activeTab === 'timeline'
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${activeTab === 'timeline'
                 ? 'bg-indigo-600 text-white'
                 : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
-            }`}
+              }`}
           >
             <Clock className="w-4 h-4" />
             Timeline
@@ -196,68 +189,66 @@ export default function ActivityLogs() {
 
         {/* ── CHARTS TAB ── */}
         {activeTab === 'charts' && (
-          <div className="space-y-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 
-            {/* Row 1: Stacked daily + severity pie */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-slate-900 border-slate-800">
-                <CardHeader>
-                  <CardTitle className="text-white">Daily Activity by Severity</CardTitle>
-                  <CardDescription className="text-slate-400">Event volume over the last 4 active days</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart data={dailyActivity} barSize={24}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                      <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
-                      <YAxis stroke="#94a3b8" fontSize={12} allowDecimals={false} />
-                      <Tooltip {...tooltipStyle} />
-                      <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
-                      <Bar dataKey="events" name="Events" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
+            {/* Full-width Daily Activity Card */}
+            <Card className="bg-slate-900 border-slate-800 lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="text-white">Daily Activity by Severity</CardTitle>
+                <CardDescription className="text-slate-400">Event volume over the last 4 active days</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={dailyActivity} barSize={24}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
+                    <YAxis stroke="#94a3b8" fontSize={12} allowDecimals={false} />
+                    <Tooltip {...tooltipStyle} />
+                    <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
+                    <Bar dataKey="events" name="Events" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
 
-            {/* Row 2: Top actions + activity by hour */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-slate-900 border-slate-800">
-                <CardHeader>
-                  <CardTitle className="text-white">Top Actions</CardTitle>
-                  <CardDescription className="text-slate-400">Most frequent event types across all users</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart data={topActions} layout="vertical" barSize={14}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                      <XAxis type="number" stroke="#94a3b8" fontSize={12} allowDecimals={false} />
-                      <YAxis type="category" dataKey="action" stroke="#94a3b8" fontSize={11} width={130} />
-                      <Tooltip {...tooltipStyle} />
-                      <Bar dataKey="count" name="Events" fill="#6366f1" radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+            {/* Half-width Top Actions Card */}
+            <Card className="bg-slate-900 border-slate-800">
+              <CardHeader>
+                <CardTitle className="text-white">Top Actions</CardTitle>
+                <CardDescription className="text-slate-400">Most frequent event types across all users</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={topActions} layout="vertical" barSize={14}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
+                    <XAxis type="number" stroke="#94a3b8" fontSize={12} allowDecimals={false} />
+                    <YAxis type="category" dataKey="action" stroke="#94a3b8" fontSize={11} width={130} />
+                    <Tooltip {...tooltipStyle} />
+                    <Bar dataKey="count" name="Events" fill="#6366f1" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
 
-              <Card className="bg-slate-900 border-slate-800">
-                <CardHeader>
-                  <CardTitle className="text-white">Activity by Hour</CardTitle>
-                  <CardDescription className="text-slate-400">When system events occur throughout the day</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart data={activityByHour} barSize={24}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                      <XAxis dataKey="hour" stroke="#94a3b8" fontSize={12} />
-                      <YAxis stroke="#94a3b8" fontSize={12} allowDecimals={false} />
-                      <Tooltip {...tooltipStyle} />
-                      <Bar dataKey="count" name="Events" fill="#10b981" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
+            {/* Half-width Activity by Hour Card */}
+            <Card className="bg-slate-900 border-slate-800">
+              <CardHeader>
+                <CardTitle className="text-white">Activity by Hour</CardTitle>
+                <CardDescription className="text-slate-400">When system events occur throughout the day</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={activityByHour} barSize={24}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <XAxis dataKey="hour" stroke="#94a3b8" fontSize={12} />
+                    <YAxis stroke="#94a3b8" fontSize={12} allowDecimals={false} />
+                    <Tooltip {...tooltipStyle} />
+                    <Bar dataKey="count" name="Events" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
           </div>
         )}
 
@@ -381,4 +372,3 @@ export default function ActivityLogs() {
     </div>
   );
 }
-
