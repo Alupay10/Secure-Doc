@@ -78,7 +78,7 @@ export default function RequestManagement() {
       // Optimistic update
       setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'approved' } : r)));
       await requestService.updateRequestStatus(id, 'approved', 'Approved by admin');
-      await auditService.logActivity(user.id, 'Approve Request', `request:${id}`, 'info', null, user.email || undefined);
+      await auditService.logActivity(user.id, 'Approve Request', `request:${id}`, 'info', undefined, user.email || undefined);
       toast.success(`Request #${id} has been approved`);
     } catch (err) {
       handleError(err, 'request:approve');
@@ -187,6 +187,37 @@ export default function RequestManagement() {
         handleError(err, 'documents:upload');
       }
     })();
+  };
+
+  const handleViewDocument = async (documentId: string, fileType: string) => {
+    try {
+      toast.info('Preparing document for viewing...');
+      const blob = await documentService.downloadDocument(documentId);
+      const typedBlob = new Blob([blob], { type: fileType });
+      const url = URL.createObjectURL(typedBlob);
+      window.open(url, '_blank');
+    } catch (err) {
+      handleError(err, 'document:view');
+      toast.error('Failed to open document for viewing');
+    }
+  };
+
+  const handleDownloadDocument = async (documentId: string, fileName: string, fileType: string) => {
+    try {
+      toast.info('Downloading document...');
+      const blob = await documentService.downloadDocument(documentId);
+      const typedBlob = new Blob([blob], { type: fileType });
+      const url = URL.createObjectURL(typedBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      handleError(err, 'document:download');
+      toast.error('Failed to download document');
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -331,11 +362,20 @@ export default function RequestManagement() {
                                   <Lock className="w-3 h-3" />
                                   Uploaded
                                 </Badge>
-                                <Button size="sm" variant="outline" className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-white">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-white"
+                                  onClick={() => handleViewDocument(docsMap[request.id][0].id, docsMap[request.id][0].file_type)}
+                                >
                                   <Eye className="w-3 h-3 mr-1" />
                                   View
                                 </Button>
-                                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                                <Button 
+                                  size="sm" 
+                                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                                  onClick={() => handleDownloadDocument(docsMap[request.id][0].id, docsMap[request.id][0].file_name, docsMap[request.id][0].file_type)}
+                                >
                                   <Download className="w-3 h-3" />
                                 </Button>
                               </div>
