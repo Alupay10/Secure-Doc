@@ -359,17 +359,17 @@ export default function RequestManagement() {
                                   <Lock className="w-3 h-3" />
                                   Uploaded
                                 </Badge>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
+                                <Button
+                                  size="sm"
+                                  variant="outline"
                                   className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-white"
                                   onClick={() => handleViewDocument(docsMap[request.id][0].id, docsMap[request.id][0].file_type)}
                                 >
                                   <Eye className="w-3 h-3 mr-1" />
                                   View
                                 </Button>
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   className="bg-indigo-600 hover:bg-indigo-700 text-white"
                                   onClick={() => handleDownloadDocument(docsMap[request.id][0].id, docsMap[request.id][0].file_name, docsMap[request.id][0].file_type)}
                                 >
@@ -396,7 +396,7 @@ export default function RequestManagement() {
       </div>
 
       <Dialog open={uploadModalOpen} onOpenChange={setUploadModalOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-2xl">
+        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               <CloudUpload className="w-6 h-6 text-indigo-400" />
@@ -409,11 +409,10 @@ export default function RequestManagement() {
 
           <div className="space-y-6 py-4">
             <div
-              className={`border-2 border-dashed rounded-lg p-8 transition-colors ${
-                isDragging
+              className={`border-2 border-dashed rounded-lg p-8 transition-colors ${isDragging
                   ? 'border-indigo-500 bg-indigo-950/30'
                   : 'border-slate-700 bg-slate-800/50'
-              }`}
+                }`}
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -512,7 +511,7 @@ export default function RequestManagement() {
       </Dialog>
 
       <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-2xl">
+        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               <XCircle className="w-6 h-6 text-red-400" />
