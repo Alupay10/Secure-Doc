@@ -1,6 +1,6 @@
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Activity, Search, Download, AlertTriangle, BarChart2, PieChart as PieIcon, Clock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -12,66 +12,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend,
 } from 'recharts';
-
-const logs = [
-  { id: 1,  timestamp: '2026-04-28 14:32:15', user: 'Admin User',     userId: 'ADM-001', action: 'Approved Request',      resource: 'Request #1247 - Transcript',          ip: '192.168.1.105', severity: 'info' },
-  { id: 2,  timestamp: '2026-04-28 14:28:43', user: 'John Doe',       userId: 'STU-001', action: 'Submitted Request',      resource: 'Request #1250 - Certificate',          ip: '192.168.1.142', severity: 'info' },
-  { id: 3,  timestamp: '2026-04-28 14:15:22', user: 'Admin User',     userId: 'ADM-001', action: 'Modified Permissions',   resource: 'User STU-045 Access Control',          ip: '192.168.1.105', severity: 'warning' },
-  { id: 4,  timestamp: '2026-04-28 13:58:11', user: 'Unknown',        userId: 'N/A',     action: 'Failed Login Attempt',   resource: 'Admin Panel',                          ip: '203.45.12.89',  severity: 'critical' },
-  { id: 5,  timestamp: '2026-04-28 13:45:33', user: 'Jane Smith',     userId: 'STU-002', action: 'Downloaded Document',    resource: 'Transcript #1240',                     ip: '192.168.1.156', severity: 'info' },
-  { id: 6,  timestamp: '2026-04-28 13:22:47', user: 'Admin User',     userId: 'ADM-001', action: 'Rejected Request',       resource: 'Request #1245 - Degree Certificate',   ip: '192.168.1.105', severity: 'warning' },
-  { id: 7,  timestamp: '2026-04-28 12:15:08', user: 'Bob Johnson',    userId: 'STU-003', action: 'Accessed Restricted Area', resource: 'Admin Dashboard',                   ip: '192.168.1.178', severity: 'critical' },
-  { id: 8,  timestamp: '2026-04-28 11:42:19', user: 'Sarah Williams', userId: 'ADM-002', action: 'Updated User Role',       resource: 'User STU-023 Role Change',            ip: '192.168.1.112', severity: 'warning' },
-  { id: 9,  timestamp: '2026-04-28 10:33:55', user: 'Alice Brown',    userId: 'STU-004', action: 'Viewed Document',         resource: 'Request #1238 Status',                ip: '192.168.1.167', severity: 'info' },
-  { id: 10, timestamp: '2026-04-28 09:15:42', user: 'Admin User',     userId: 'ADM-001', action: 'System Login',            resource: 'Admin Dashboard',                     ip: '192.168.1.105', severity: 'info' },
-  { id: 11, timestamp: '2026-04-27 16:45:10', user: 'John Doe',       userId: 'STU-001', action: 'Submitted Request',       resource: 'Request #1249 - Enrollment Letter',   ip: '192.168.1.142', severity: 'info' },
-  { id: 12, timestamp: '2026-04-27 15:22:38', user: 'Unknown',        userId: 'N/A',     action: 'Failed Login Attempt',    resource: 'Student Portal',                      ip: '198.51.100.24', severity: 'critical' },
-  { id: 13, timestamp: '2026-04-27 14:10:05', user: 'Jane Smith',     userId: 'STU-002', action: 'Submitted Request',       resource: 'Request #1248 - Certificate',         ip: '192.168.1.156', severity: 'info' },
-  { id: 14, timestamp: '2026-04-27 11:55:22', user: 'Admin User',     userId: 'ADM-001', action: 'Approved Request',        resource: 'Request #1244 - Transcript',          ip: '192.168.1.105', severity: 'info' },
-  { id: 15, timestamp: '2026-04-26 17:30:44', user: 'Bob Johnson',    userId: 'STU-003', action: 'Downloaded Document',     resource: 'Certificate #1241',                   ip: '192.168.1.178', severity: 'info' },
-  { id: 16, timestamp: '2026-04-26 10:12:59', user: 'Sarah Williams', userId: 'ADM-002', action: 'Modified Permissions',    resource: 'User STU-067 Access Control',         ip: '192.168.1.112', severity: 'warning' },
-  { id: 17, timestamp: '2026-04-25 14:08:33', user: 'Unknown',        userId: 'N/A',     action: 'Failed Login Attempt',    resource: 'Admin Panel',                         ip: '203.45.12.89',  severity: 'critical' },
-  { id: 18, timestamp: '2026-04-25 09:44:17', user: 'Alice Brown',    userId: 'STU-004', action: 'Submitted Request',       resource: 'Request #1246 - Enrollment Letter',   ip: '192.168.1.167', severity: 'info' },
-];
-
-// ── Derived chart data ──────────────────────────────────────────────────────
-
-// Activity by hour of day (bucketed from timestamps)
-const activityByHour = Array.from({ length: 8 }, (_, i) => {
-  const hour = i + 9; // 09:00 – 16:00
-  return {
-    hour: `${String(hour).padStart(2, '0')}:00`,
-    count: logs.filter((l) => parseInt(l.timestamp.split(' ')[1]) === hour).length,
-  };
-});
-
-// Severity distribution
-const severityCounts = {
-  info:     logs.filter((l) => l.severity === 'info').length,
-  warning:  logs.filter((l) => l.severity === 'warning').length,
-  critical: logs.filter((l) => l.severity === 'critical').length,
-};
-const severityData = [
-  { name: 'Info',     value: severityCounts.info,     color: '#3b82f6' },
-  { name: 'Warning',  value: severityCounts.warning,  color: '#f59e0b' },
-  { name: 'Critical', value: severityCounts.critical, color: '#ef4444' },
-];
-
-// Top actions
-const actionCounts: Record<string, number> = {};
-logs.forEach((l) => { actionCounts[l.action] = (actionCounts[l.action] || 0) + 1; });
-const topActions = Object.entries(actionCounts)
-  .sort((a, b) => b[1] - a[1])
-  .slice(0, 6)
-  .map(([action, count]) => ({ action: action.replace(' ', '\n'), count }));
-
-// Daily activity (last 4 days)
-const dailyActivity = [
-  { date: '04/25', info: 2, warning: 1, critical: 1 },
-  { date: '04/26', info: 2, warning: 1, critical: 0 },
-  { date: '04/27', info: 3, warning: 0, critical: 1 },
-  { date: '04/28', info: 5, warning: 2, critical: 2 },
-];
+import { getActivityLogs, exportActivityLogs, ActivityLog } from '../../services/auditService';
 
 // ── Tooltip styles ──────────────────────────────────────────────────────────
 const tooltipStyle = {
@@ -98,22 +39,119 @@ const getSeverityBadge = (severity: string) => {
 export default function ActivityLogs() {
   const { user }    = useAuth();
   const navigate    = useNavigate();
+  const [logs, setLogs]               = useState<ActivityLog[]>([]);
+  const [isLoading, setIsLoading]     = useState(true);
   const [search, setSearch]           = useState('');
   const [actionFilter, setActionFilter] = useState('all');
   const [activeTab, setActiveTab]     = useState<'charts' | 'timeline'>('charts');
 
   useEffect(() => {
-    if (user?.role !== 'admin') navigate('/unauthorized');
+    if (user?.role !== 'admin') {
+      navigate('/unauthorized');
+      return;
+    }
+    
+    const fetchLogs = async () => {
+      try {
+        setIsLoading(true);
+        const data = await getActivityLogs();
+        setLogs(data);
+      } catch (error) {
+        console.error('Failed to fetch activity logs:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchLogs();
   }, [user, navigate]);
 
-  const filteredLogs = logs.filter((log) => {
-    const matchesSearch =
-      log.user.toLowerCase().includes(search.toLowerCase()) ||
-      log.action.toLowerCase().includes(search.toLowerCase()) ||
-      log.resource.toLowerCase().includes(search.toLowerCase());
-    const matchesFilter = actionFilter === 'all' || log.severity === actionFilter;
-    return matchesSearch && matchesFilter;
-  });
+  const handleExport = async () => {
+    try {
+      const csv = await exportActivityLogs();
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `activity_logs_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Failed to export logs:', error);
+    }
+  };
+
+  // ── Derived chart data ──────────────────────────────────────────────────────
+
+  const activityByHour = useMemo(() => {
+    return Array.from({ length: 8 }, (_, i) => {
+      const hour = i + 9; // 09:00 – 16:00
+      return {
+        hour: `${String(hour).padStart(2, '0')}:00`,
+        count: logs.filter((l) => new Date(l.created_at).getHours() === hour).length,
+      };
+    });
+  }, [logs]);
+
+  const severityCounts = useMemo(() => ({
+    info:     logs.filter((l) => l.severity === 'info').length,
+    warning:  logs.filter((l) => l.severity === 'warning').length,
+    critical: logs.filter((l) => l.severity === 'critical').length,
+  }), [logs]);
+
+  const severityData = useMemo(() => [
+    { name: 'Info',     value: severityCounts.info,     color: '#3b82f6' },
+    { name: 'Warning',  value: severityCounts.warning,  color: '#f59e0b' },
+    { name: 'Critical', value: severityCounts.critical, color: '#ef4444' },
+  ], [severityCounts]);
+
+  const topActions = useMemo(() => {
+    const actionCounts: Record<string, number> = {};
+    logs.forEach((l) => { actionCounts[l.action] = (actionCounts[l.action] || 0) + 1; });
+    return Object.entries(actionCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([action, count]) => ({ action: action.replace(' ', '\n'), count }));
+  }, [logs]);
+
+  const dailyActivity = useMemo(() => {
+    const days: Record<string, { info: number, warning: number, critical: number }> = {};
+    logs.forEach((log) => {
+      const date = new Date(log.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' });
+      if (!days[date]) days[date] = { info: 0, warning: 0, critical: 0 };
+      days[date][log.severity]++;
+    });
+    
+    return Object.entries(days)
+      .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+      .slice(-4) // Last 4 days
+      .map(([date, counts]) => ({ date, ...counts }));
+  }, [logs]);
+
+  const filteredLogs = useMemo(() => {
+    return logs.filter((log) => {
+      const searchLower = search.toLowerCase();
+      const userName = (log.user_email || log.user_id || '').toLowerCase();
+      const actionName = (log.action || '').toLowerCase();
+      const resourceName = (log.resource || '').toLowerCase();
+
+      const matchesSearch =
+        userName.includes(searchLower) ||
+        actionName.includes(searchLower) ||
+        resourceName.includes(searchLower);
+      const matchesFilter = actionFilter === 'all' || log.severity === actionFilter;
+      return matchesSearch && matchesFilter;
+    });
+  }, [logs, search, actionFilter]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 p-8 flex items-center justify-center">
+        <div className="text-slate-400">Loading activity logs...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 p-8">
@@ -136,7 +174,7 @@ export default function ActivityLogs() {
               <CardTitle className="text-3xl text-white">{logs.length}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-slate-400">Last 4 days</p>
+              <p className="text-sm text-slate-400">All time</p>
             </CardContent>
           </Card>
 
@@ -199,7 +237,7 @@ export default function ActivityLogs() {
               <Card className="bg-slate-900 border-slate-800">
                 <CardHeader>
                   <CardTitle className="text-white">Daily Activity by Severity</CardTitle>
-                  <CardDescription className="text-slate-400">Event volume over the last 4 days</CardDescription>
+                  <CardDescription className="text-slate-400">Event volume over the last 4 active days</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={260}>
@@ -331,16 +369,18 @@ export default function ActivityLogs() {
                         <p className="text-sm font-medium text-white">{log.action}</p>
                         <p className="text-xs text-slate-400 mt-0.5">{log.resource}</p>
                         <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
-                          <span className="font-medium text-slate-300">{log.user}</span>
+                          <span className="font-medium text-slate-300">{log.user_email || log.user_id}</span>
                           <span>·</span>
-                          <span className="font-mono">{log.ip}</span>
+                          <span className="font-mono">{log.ip_address || 'unknown'}</span>
                           <span>·</span>
-                          <span className="font-mono">{log.userId}</span>
+                          <span className="font-mono">{log.user_id}</span>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-2 shrink-0">
                         <Badge className={getSeverityBadge(log.severity)}>{log.severity}</Badge>
-                        <span className="text-xs text-slate-500 font-mono">{log.timestamp}</span>
+                        <span className="text-xs text-slate-500 font-mono">
+                          {new Date(log.created_at).toLocaleString()}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -374,7 +414,7 @@ export default function ActivityLogs() {
                   <SelectItem value="info">Info</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-white cursor-pointer">
+              <Button onClick={handleExport} variant="outline" className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-white cursor-pointer">
                 <Download className="w-4 h-4 mr-2" />
                 Export
               </Button>
@@ -414,21 +454,30 @@ export default function ActivityLogs() {
                         log.severity === 'critical' ? 'bg-red-950/10' : ''
                       }`}
                     >
-                      <td className="py-4 text-sm text-white font-mono">{log.timestamp}</td>
+                      <td className="py-4 text-sm text-white font-mono">
+                        {new Date(log.created_at).toLocaleString()}
+                      </td>
                       <td className="py-4">
                         <div>
-                          <p className="text-sm text-white">{log.user}</p>
-                          <p className="text-xs text-slate-400">{log.userId}</p>
+                          <p className="text-sm text-white">{log.user_email || log.user_id}</p>
+                          <p className="text-xs text-slate-400">{log.user_id}</p>
                         </div>
                       </td>
                       <td className="py-4 text-sm text-white">{log.action}</td>
                       <td className="py-4 text-sm text-slate-400">{log.resource}</td>
-                      <td className="py-4 text-sm text-slate-400 font-mono">{log.ip}</td>
+                      <td className="py-4 text-sm text-slate-400 font-mono">{log.ip_address || 'unknown'}</td>
                       <td className="py-4">
                         <Badge className={getSeverityBadge(log.severity)}>{log.severity}</Badge>
                       </td>
                     </tr>
                   ))}
+                  {filteredLogs.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-slate-400">
+                        No activity logs found.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -439,3 +488,4 @@ export default function ActivityLogs() {
     </div>
   );
 }
+
