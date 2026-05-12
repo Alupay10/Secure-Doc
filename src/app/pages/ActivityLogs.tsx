@@ -168,8 +168,8 @@ export default function ActivityLogs() {
           <button
             onClick={() => setActiveTab('charts')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${activeTab === 'charts'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
+              ? 'bg-indigo-600 text-white'
+              : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
               }`}
           >
             <BarChart2 className="w-4 h-4" />
@@ -178,8 +178,8 @@ export default function ActivityLogs() {
           <button
             onClick={() => setActiveTab('timeline')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${activeTab === 'timeline'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
+              ? 'bg-indigo-600 text-white'
+              : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
               }`}
           >
             <Clock className="w-4 h-4" />
@@ -194,7 +194,7 @@ export default function ActivityLogs() {
             {/* Full-width Daily Activity Card */}
             <Card className="bg-slate-900 border-slate-800 lg:col-span-2">
               <CardHeader>
-                <CardTitle className="text-white">Daily Activity by Severity</CardTitle>
+                <CardTitle className="text-white">Daily Activity</CardTitle>
                 <CardDescription className="text-slate-400">Event volume over the last 4 active days</CardDescription>
               </CardHeader>
               <CardContent>
