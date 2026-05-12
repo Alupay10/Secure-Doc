@@ -68,7 +68,7 @@ export const DocumentProvider = ({ children }: { children: ReactNode }) => {
       }));
       // merge into local cache
       setUploadedDocuments((prev) => {
-        const ids = new Set(prev.map((p) => p.id));
+        const ids = new Set(mapped.map((m) => m.id));
         const merged = [...mapped, ...prev.filter((p) => !ids.has(p.id))];
         return merged;
       });

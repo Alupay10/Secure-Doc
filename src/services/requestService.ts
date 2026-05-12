@@ -94,7 +94,7 @@ export const getAllRequests = async (
     offset?: number;
   }
 ): Promise<Request[]> => {
-  let query = supabase.from('requests').select('*');
+  let query = supabase.from('requests').select('*').is('deleted_at', null);
 
   if (filters?.status) {
     query = query.eq('status', filters.status);
@@ -163,6 +163,36 @@ export const deleteRequest = async (requestId: string): Promise<void> => {
     .eq('id', requestId);
 
   if (error) throw error;
+};
+
+/**
+ * Update user-owned request details (students can update pending requests via RLS)
+ */
+export const updateUserRequest = async (
+  requestId: string,
+  updates: {
+    type: string;
+    purpose: string;
+    remarks?: string;
+  }
+): Promise<Request> => {
+  const { data, error } = await supabase
+    .from('requests')
+    .update({
+      type: updates.type,
+      purpose: updates.purpose,
+      remarks: updates.remarks?.trim() ? updates.remarks.trim() : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', requestId)
+    .is('deleted_at', null)
+    .select()
+    .single();
+
+  if (error) throw error;
+  if (!data) throw new Error('Failed to update request');
+
+  return data as Request;
 };
 
 /**
