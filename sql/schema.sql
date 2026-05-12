@@ -90,8 +90,6 @@ CREATE TABLE IF NOT EXISTS public.activity_logs (
   action VARCHAR(255) NOT NULL,
   resource VARCHAR(255) NOT NULL,
   details JSONB,
-  severity VARCHAR(20) DEFAULT 'info' NOT NULL CHECK (severity IN ('info', 'warning', 'critical')),
-  ip_address VARCHAR(45),
   user_agent TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -99,7 +97,6 @@ CREATE TABLE IF NOT EXISTS public.activity_logs (
 -- Create indexes for common queries and performance
 CREATE INDEX IF NOT EXISTS activity_logs_user_id_idx ON public.activity_logs(user_id);
 CREATE INDEX IF NOT EXISTS activity_logs_action_idx ON public.activity_logs(action);
-CREATE INDEX IF NOT EXISTS activity_logs_severity_idx ON public.activity_logs(severity);
 CREATE INDEX IF NOT EXISTS activity_logs_created_at_idx ON public.activity_logs(created_at DESC);
 
 -- ==========================================

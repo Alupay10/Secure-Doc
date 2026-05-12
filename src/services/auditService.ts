@@ -1,8 +1,6 @@
 import { supabase } from './supabaseClient';
 import { handleError } from '../utils/errorHandler';
 
-export type ActivitySeverity = 'info' | 'warning' | 'critical';
-
 export interface ActivityLog {
   id: string;
   user_id: string;
@@ -10,8 +8,6 @@ export interface ActivityLog {
   action: string;
   resource: string;
   details: any;
-  severity: ActivitySeverity;
-  ip_address: string;
   user_agent: string;
   created_at: string;
 }
@@ -20,7 +16,6 @@ export interface ActivityFilters {
   limit?: number;
   offset?: number;
   user_id?: string;
-  severity?: string;
   action?: string;
   startDate?: string;
   endDate?: string;
@@ -62,7 +57,6 @@ export const getActivityLogs = async (
     let query = supabase.from('activity_logs').select('*', { count: 'exact' });
 
     if (filters.user_id) query = query.eq('user_id', filters.user_id);
-    if (filters.severity) query = query.eq('severity', filters.severity);
     if (filters.action) query = query.ilike('action', `%${filters.action}%`);
     if (filters.startDate) query = query.gte('created_at', filters.startDate);
     if (filters.endDate) query = query.lte('created_at', filters.endDate);
@@ -106,7 +100,7 @@ export const getActivityStats = async (
 ) => {
   let query = supabase
     .from('activity_logs')
-    .select('action, severity, user_id');
+    .select('action, user_id');
 
   if (startDate) {
     query = query.gte('created_at', startDate);
@@ -123,39 +117,18 @@ export const getActivityStats = async (
   const stats = {
     totalActivities: data?.length || 0,
     byAction: {} as Record<string, number>,
-    bySeverity: {
-      info: 0,
-      warning: 0,
-      critical: 0,
-    },
     uniqueUsers: new Set((data || []).map((log) => log.user_id)).size,
   };
 
   // Group by action
   (data || []).forEach((log) => {
     stats.byAction[log.action] = (stats.byAction[log.action] || 0) + 1;
-    stats.bySeverity[log.severity as ActivitySeverity]++;
   });
 
   return stats;
 };
 
-/**
- * Get recent critical activities (for admin dashboard alerts)
- */
-export const getRecentCriticalActivities = async (
-  limit: number = 10
-): Promise<ActivityLog[]> => {
-  const { data, error } = await supabase
-    .from('activity_logs')
-    .select('*')
-    .eq('severity', 'critical')
-    .order('created_at', { ascending: false })
-    .limit(limit);
 
-  if (error) throw error;
-  return (data || []) as ActivityLog[];
-};
 
 /**
  * Get activity timeline for a user
@@ -193,7 +166,7 @@ export const exportActivityLogs = async (
   });
 
   // Create CSV header
-  const headers = ['ID', 'Timestamp', 'User ID', 'User Email', 'Action', 'Resource', 'Severity', 'IP Address'];
+  const headers = ['ID', 'Timestamp', 'User ID', 'User Email', 'Action', 'Resource'];
   const rows = logs.map((log) => [
     log.id,
     log.created_at,
@@ -201,8 +174,6 @@ export const exportActivityLogs = async (
     log.user_email || '',
     log.action,
     log.resource,
-    log.severity,
-    log.ip_address || '',
   ]);
 
   const csv =
