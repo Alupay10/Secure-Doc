@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import type { User } from '@supabase/supabase-js';
+import { logActivity } from './auditService';
 
 export type UserRole = 'student' | 'admin';
 
@@ -41,6 +42,17 @@ export const signIn = async (email: string, password: string) => {
 
   if (error) throw error;
   if (!data.user) throw new Error('Login failed');
+
+  await logActivity({
+    user_id: data.user.id,
+    user_email: data.user.email || 'unknown',
+    action: 'User Signed In',
+    resource: 'Authentication',
+    details: { provider: 'email' },
+    severity: 'info',
+    ip_address: '', // IP address should be captured server-side if possible
+    user_agent: navigator.userAgent,
+  });
 
   return {
     user: data.user,

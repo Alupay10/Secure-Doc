@@ -77,8 +77,7 @@ export default function RequestManagement() {
     try {
       // Optimistic update
       setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'approved' } : r)));
-      await requestService.updateRequestStatus(id, 'approved', 'Approved by admin');
-      await auditService.logActivity(user.id, 'Approve Request', `request:${id}`, 'info', undefined, user.email || undefined);
+      await requestService.updateRequestStatus(id, 'approved', { id: user.id, email: user.email || 'unknown' }, 'Approved by admin');
       toast.success(`Request #${id} has been approved`);
     } catch (err) {
       handleError(err, 'request:approve');
@@ -105,8 +104,7 @@ export default function RequestManagement() {
     try {
       // optimistic update
       setRequests((prev) => prev.map((r) => (r.id === selectedRequest ? { ...r, status: 'rejected' } : r)));
-      await requestService.updateRequestStatus(selectedRequest, 'rejected', `${rejectionCategory}: ${rejectionReason}`);
-      await auditService.logActivity(user.id, 'Reject Request', `request:${selectedRequest}`, 'info', { category: rejectionCategory, reason: rejectionReason }, user.email || undefined);
+      await requestService.updateRequestStatus(selectedRequest, 'rejected', { id: user.id, email: user.email || 'unknown' }, `${rejectionCategory}: ${rejectionReason}`);
 
       toast.success(`Request #${selectedRequest} has been rejected`);
       setRejectModalOpen(false);
@@ -177,7 +175,6 @@ export default function RequestManagement() {
         const doc = await uploadDocument(selectedRequest, uploadFile, uploadRemarks);
         // update docsMap
         setDocsMap((prev) => ({ ...prev, [selectedRequest]: [doc as any, ...(prev[selectedRequest] || [])] }));
-        await auditService.logActivity(user.id, 'Upload Document', `request:${selectedRequest}`, 'info', { file: uploadFile.name }, user.email || undefined);
         toast.success(`Document uploaded successfully for request #${selectedRequest}`);
         setUploadModalOpen(false);
         setSelectedRequest(null);

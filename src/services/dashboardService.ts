@@ -26,29 +26,42 @@ export interface DocumentTypeDistribution {
 
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   try {
-    const { data: users, error: usersError } = await supabase
+    const { count: totalUsers, error: usersError } = await supabase
       .from('user_profiles')
       .select('id', { count: 'exact', head: true })
       .is('deleted_at', null);
 
     if (usersError) throw usersError;
 
-    const { data: requests, error: requestsError } = await supabase
+    const { count: totalRequests, error: requestsError } = await supabase
       .from('requests')
-      .select('status', { count: 'exact' })
+      .select('id', { count: 'exact', head: true })
       .is('deleted_at', null);
-
+    
     if (requestsError) throw requestsError;
 
-    const totalRequests = requests?.length ?? 0;
-    const pendingApprovals = requests?.filter((r) => r.status === 'pending').length ?? 0;
-    const rejectedRequests = requests?.filter((r) => r.status === 'rejected').length ?? 0;
-    const rejectionRate = totalRequests > 0 ? (rejectedRequests / totalRequests) * 100 : 0;
+    const { count: pendingApprovals, error: pendingError } = await supabase
+      .from('requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending')
+      .is('deleted_at', null);
+
+    if (pendingError) throw pendingError;
+
+    const { count: rejectedRequests, error: rejectedError } = await supabase
+      .from('requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'rejected')
+      .is('deleted_at', null);
+
+    if (rejectedError) throw rejectedError;
+
+    const rejectionRate = totalRequests ?? 0 > 0 ? ((rejectedRequests ?? 0) / (totalRequests ?? 1)) * 100 : 0;
 
     return {
-      totalUsers: users ?? 0,
-      totalRequests,
-      pendingApprovals,
+      totalUsers: totalUsers ?? 0,
+      totalRequests: totalRequests ?? 0,
+      pendingApprovals: pendingApprovals ?? 0,
       rejectionRate,
     };
   } catch (error) {

@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { logActivity } from './auditService';
 
 export type RequestStatus = 'pending' | 'approved' | 'rejected';
 
@@ -37,6 +38,17 @@ export const createRequest = async (
 
   if (error) throw error;
   if (!data) throw new Error('Failed to create request');
+
+  await logActivity({
+    user_id: userId,
+    user_email: email || 'unknown',
+    action: 'Created Request',
+    resource: 'Document Request',
+    details: { requestId: data.id, type, purpose },
+    severity: 'info',
+    ip_address: '',
+    user_agent: navigator.userAgent,
+  });
 
   return data as Request;
 };
@@ -110,6 +122,7 @@ export const getAllRequests = async (
 export const updateRequestStatus = async (
   requestId: string,
   status: RequestStatus,
+  adminUser: { id: string; email: string },
   remarks?: string
 ): Promise<Request> => {
   const { data, error } = await supabase
@@ -125,6 +138,17 @@ export const updateRequestStatus = async (
 
   if (error) throw error;
   if (!data) throw new Error('Failed to update request');
+
+  await logActivity({
+    user_id: adminUser.id,
+    user_email: adminUser.email,
+    action: `Updated Request Status to ${status}`,
+    resource: 'Document Request',
+    details: { requestId, remarks },
+    severity: 'info',
+    ip_address: '',
+    user_agent: navigator.userAgent,
+  });
 
   return data as Request;
 };
