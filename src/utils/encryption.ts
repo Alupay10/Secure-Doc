@@ -65,7 +65,7 @@ export const encryptBytes = async (input: ArrayBuffer): Promise<EncryptedFilePay
   }
 
   return {
-    blob: new Blob([encrypted], { type: 'application/octet-stream' }),
+    blob: new Blob([encrypted as any], { type: 'application/octet-stream' }),
     metadata: {
       key: bytesToBase64(key),
       nonce: bytesToBase64(nonce),
@@ -91,7 +91,7 @@ export const decryptBytes = async (
     throw new Error('Failed to decrypt file');
   }
 
-  return decrypted.buffer.slice(decrypted.byteOffset, decrypted.byteOffset + decrypted.byteLength);
+  return decrypted.buffer.slice(decrypted.byteOffset, decrypted.byteOffset + decrypted.byteLength) as ArrayBuffer;
 };
 
 export const decryptBlob = async (
