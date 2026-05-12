@@ -396,7 +396,7 @@ export default function RequestManagement() {
       </div>
 
       <Dialog open={uploadModalOpen} onOpenChange={setUploadModalOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-2xl max-h-[85vh] flex flex-col p-6">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               <CloudUpload className="w-6 h-6 text-indigo-400" />
@@ -407,9 +407,9 @@ export default function RequestManagement() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 py-4">
+          <div className="space-y-6 py-4 flex-1 overflow-y-auto pr-2">
             <div
-              className={`border-2 border-dashed rounded-lg p-8 transition-colors ${isDragging
+              className={`border-2 border-dashed rounded-lg p-8 transition-colors shrink-0 ${isDragging
                   ? 'border-indigo-500 bg-indigo-950/30'
                   : 'border-slate-700 bg-slate-800/50'
                 }`}
@@ -456,7 +456,7 @@ export default function RequestManagement() {
               </div>
             </div>
 
-            <div>
+            <div className="shrink-0">
               <Label htmlFor="remarks" className="text-slate-300">
                 Remarks / Notes (Optional)
               </Label>
@@ -469,7 +469,7 @@ export default function RequestManagement() {
               />
             </div>
 
-            <div className="flex items-start gap-3 p-4 bg-blue-950/30 border border-blue-900 rounded-lg">
+            <div className="flex items-start gap-3 p-4 bg-blue-950/30 border border-blue-900 rounded-lg shrink-0">
               <Lock className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
               <div className="text-sm">
                 <p className="text-blue-300 font-medium">Security & Encryption</p>
@@ -479,7 +479,7 @@ export default function RequestManagement() {
               </div>
             </div>
 
-            <div className="flex items-start gap-3 p-4 bg-amber-950/30 border border-amber-900 rounded-lg">
+            <div className="flex items-start gap-3 p-4 bg-amber-950/30 border border-amber-900 rounded-lg shrink-0">
               <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
               <div className="text-sm">
                 <p className="text-amber-300 font-medium">Action Logging</p>
@@ -490,7 +490,7 @@ export default function RequestManagement() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="mt-4 pt-4 border-t border-slate-800">
             <Button
               variant="outline"
               onClick={() => setUploadModalOpen(false)}
@@ -511,7 +511,7 @@ export default function RequestManagement() {
       </Dialog>
 
       <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-2xl max-h-[85vh] flex flex-col p-6">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               <XCircle className="w-6 h-6 text-red-400" />
@@ -522,8 +522,8 @@ export default function RequestManagement() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 py-4">
-            <div>
+          <div className="space-y-6 py-4 flex-1 overflow-y-auto pr-2">
+            <div className="shrink-0">
               <Label htmlFor="rejection-category" className="text-slate-300">
                 Rejection Category *
               </Label>
@@ -542,7 +542,7 @@ export default function RequestManagement() {
               </Select>
             </div>
 
-            <div>
+            <div className="shrink-0">
               <Label htmlFor="rejection-reason" className="text-slate-300">
                 Detailed Reason *
               </Label>
@@ -558,7 +558,7 @@ export default function RequestManagement() {
               </p>
             </div>
 
-            <div className="flex items-start gap-3 p-4 bg-amber-950/30 border border-amber-900 rounded-lg">
+            <div className="flex items-start gap-3 p-4 bg-amber-950/30 border border-amber-900 rounded-lg shrink-0">
               <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
               <div className="text-sm">
                 <p className="text-amber-300 font-medium">Important Notice</p>
@@ -568,7 +568,7 @@ export default function RequestManagement() {
               </div>
             </div>
 
-            <div className="flex items-start gap-3 p-4 bg-red-950/30 border border-red-900 rounded-lg">
+            <div className="flex items-start gap-3 p-4 bg-red-950/30 border border-red-900 rounded-lg shrink-0">
               <Lock className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
               <div className="text-sm">
                 <p className="text-red-300 font-medium">Action Logging</p>
@@ -579,7 +579,7 @@ export default function RequestManagement() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="mt-4 pt-4 border-t border-slate-800">
             <Button
               variant="outline"
               onClick={() => setRejectModalOpen(false)}
