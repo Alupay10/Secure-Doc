@@ -31,6 +31,9 @@ export default function ActivityLogs() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'charts' | 'timeline'>('charts');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10); // Keep page size constant for now
+  const [totalLogs, setTotalLogs] = useState(0);
 
   useEffect(() => {
     if (user?.role !== 'admin') {
@@ -41,8 +44,10 @@ export default function ActivityLogs() {
     const fetchLogs = async () => {
       try {
         setIsLoading(true);
-        const { logs: data } = await getActivityLogs({});
+        const offset = (currentPage - 1) * pageSize;
+        const { logs: data, count } = await getActivityLogs({ limit: pageSize, offset });
         setLogs(data);
+        setTotalLogs(count);
       } catch (error) {
         console.error('Failed to fetch activity logs:', error);
       } finally {
@@ -51,7 +56,7 @@ export default function ActivityLogs() {
     };
 
     fetchLogs();
-  }, [user, navigate]);
+  }, [user, navigate, currentPage, pageSize]);
 
   const handleExport = async () => {
     try {
@@ -145,7 +150,7 @@ export default function ActivityLogs() {
           <Card className="bg-slate-900 border-slate-800">
             <CardHeader className="pb-3">
               <CardDescription className="text-slate-400">Total Events</CardDescription>
-              <CardTitle className="text-3xl text-white">{logs.length}</CardTitle>
+              <CardTitle className="text-3xl text-white">{totalLogs}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-slate-400">All time</p>
@@ -255,7 +260,7 @@ export default function ActivityLogs() {
         {/* ── TIMELINE TAB ── */}
         {activeTab === 'timeline' && (
           <div className="mb-6 space-y-1">
-            {logs.slice(0, 12).map((log, idx) => {
+            {logs.map((log, idx) => {
               const dotColor = 'bg-blue-400';
               const lineColor = 'border-slate-800';
               return (
@@ -263,7 +268,7 @@ export default function ActivityLogs() {
                   {/* Spine */}
                   <div className="flex flex-col items-center">
                     <div className={`w-3 h-3 rounded-full mt-4 shrink-0 ${dotColor}`} />
-                    {idx < logs.slice(0, 12).length - 1 && (
+                    {idx < logs.length - 1 && (
                       <div className={`w-px flex-1 border-l-2 border-dashed ${lineColor} mt-1`} />
                     )}
                   </div>
@@ -367,6 +372,31 @@ export default function ActivityLogs() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Pagination controls */}
+        <div className="flex justify-between items-center mt-6 text-sm text-slate-400">
+          <div>
+            Showing page <strong>{currentPage}</strong> of <strong>{Math.ceil(totalLogs / pageSize)}</strong>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              variant="outline"
+              className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-white"
+            >
+              Previous
+            </Button>
+            <Button
+              onClick={() => setCurrentPage((p) => p + 1)}
+              disabled={currentPage * pageSize >= totalLogs}
+              variant="outline"
+              className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-white"
+            >
+              Next
+            </Button>
+          </div>
+        </div>
 
       </div>
     </div>
