@@ -16,6 +16,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE IF NOT EXISTS public.user_profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   role VARCHAR(20) DEFAULT 'student' NOT NULL CHECK (role IN ('student', 'admin')),
+  status VARCHAR(20) DEFAULT 'active' NOT NULL CHECK (status IN ('active', 'suspended')),
   full_name VARCHAR(255),
   department VARCHAR(255),
   email_verified BOOLEAN DEFAULT FALSE,
@@ -221,10 +222,113 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ==========================================
--- NOTES:
+-- 5. RPC FUNCTIONS
 -- ==========================================
--- 1. Row-Level Security (RLS) policies are defined in rls-policies.sql
--- 2. Supabase Storage bucket 'documents' must be created separately in Supabase dashboard
--- 3. All tables use soft deletes (deleted_at column) for audit compliance
--- 4. Auth is handled by Supabase Auth (auth.users table)
--- 5. User metadata (role) is stored in auth.users.user_metadata for real-time access
+
+-- Function to get all users with their email, role, and status
+CREATE OR REPLACE FUNCTION get_all_users()
+RETURNS TABLE (
+  id UUID,
+  email character varyingacter varying,
+  role VARCHAR,
+  status VARCHAR
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    u.id,
+    u.email,
+    up.role,
+    up.status
+  FROM
+    auth.users u
+  JOIN
+    public.user_profiles up ON u.id = up.id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant execute permission to the authenticated role
+GRANT EXECUTE ON FUNCTION get_all_users() TO authenticated;
+
+-- Function to get dashboard stats
+CREATE OR REPLACE FUNCTION get_dashboard_stats()
+RETURNS TABLE (
+    total_requests BIGINT,
+    pending_requests BIGINT,
+    approved_requests BIGINT,
+    total_users BIGINT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        (SELECT COUNT(*) FROM public.requests WHERE deleted_at IS NULL) as total_requests,
+        (SELECT COUNT(*) FROM public.requests WHERE status = 'pending' AND deleted_at IS NULL) as pending_requests,
+        (SELECT COUNT(*) FROM public.requests WHERE status = 'approved' AND deleted_at IS NULL) as approved_requests,
+        (SELECT COUNT(*) FROM auth.users) as total_users;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to get request counts over time
+CREATE OR REPLACE FUNCTION get_requests_over_time(
+    start_date TIMESTAMPTZ,
+    end_date TIMESTAMPTZ
+)
+RETURNS TABLE (
+    date TEXT,
+    count BIGINT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        to_char(d.day, 'YYYY-MM-DD') as date,
+        COUNT(r.id) as count
+    FROM
+        generate_series(start_date, end_date, '1 day'::interval) as d(day)
+    LEFT JOIN
+        public.requests r ON DATE(r.created_at) = d.day AND r.deleted_at IS NULL
+    GROUP BY
+        d.day
+    ORDER BY
+        d.day;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to get request status distribution
+CREATE OR REPLACE FUNCTION get_status_distribution()
+RETURNS TABLE (
+    status VARCHAR,
+    count BIGINT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        r.status,
+        COUNT(r.id) as count
+    FROM
+        public.requests r
+    WHERE
+        r.deleted_at IS NULL
+    GROUP BY
+        r.status;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to get document type distribution
+CREATE OR REPLACE FUNCTION get_document_type_distribution()
+RETURNS TABLE (
+    type VARCHAR,
+    count BIGINT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        r.type,
+        COUNT(r.id) as count
+    FROM
+        public.requests r
+    WHERE
+        r.deleted_at IS NULL
+    GROUP BY
+        r.type;
+END;
+$$ LANGUAGE plpgsql;
